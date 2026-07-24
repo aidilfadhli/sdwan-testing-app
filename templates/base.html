@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Mass Testing SD-WAN{% endblock %}</title>
+<link rel="stylesheet" href="/static/style.css">
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand-container">
+    <img src="/static/assets/img/logo.png" alt="Telkom Logo" class="brand-logo">
+    <a href="/" class="brand">Mass Testing SD-WAN</a>
+  </div>
+  <nav>
+    <a href="/form" class="btn primary small"><i data-lucide="plus" class="icon"></i> Uji Baru</a>
+    <a href="/export" class="btn small"><i data-lucide="download" class="icon"></i> Export Excel</a>
+  </nav>
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+<div id="scanmodal" hidden>
+  <div class="scanpanel">
+    <div class="scanhead">
+      <strong><i data-lucide="camera" class="icon"></i> Arahkan kamera ke barcode S/N</strong>
+      <button type="button" class="btn small" onclick="closeScan()"><i data-lucide="x" class="icon"></i> Tutup</button>
+    </div>
+    <div id="qrreader"></div>
+  </div>
+</div>
+<script src="/static/html5-qrcode.min.js"></script>
+<script src="/static/scanner.js"></script>
+<script>
+  lucide.createIcons();
+</script>
+</body>
+</html>

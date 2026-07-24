@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ r['serial_number'] }} — Hasil Uji{% endblock %}
+{% block content %}
+{% if request.query_params.get('err') == 'pin' %}
+<div class="errbanner"><i data-lucide="x-circle" class="icon"></i> PIN supervisor salah — laporan tidak dihapus.</div>
+{% endif %}
+<div class="detailhead">
+  <h1>{{ r['serial_number'] }}
+    <span class="badge big {{ 'ok' if r['status']=='PASS' else 'nok' }}">{{ r['status'] }}</span>
+  </h1>
+  <div class="actions">
+    <a class="btn primary" href="/print?ids={{ r['id'] }}" target="_blank"><i data-lucide="printer" class="icon"></i> Print</a>
+    <a class="btn" href="/report/{{ r['id'] }}"><i data-lucide="download" class="icon"></i> Unduh Berita Acara (.docx)</a>
+    <a class="btn" href="/form?sn={{ r['serial_number'] }}"><i data-lucide="refresh-cw" class="icon"></i> Uji Ulang</a>
+    <form method="post" action="/device/{{ r['id'] }}/delete" onsubmit="return askPin(this)">
+      <input type="hidden" name="pin">
+      <button type="submit" class="btn danger"><i data-lucide="trash-2" class="icon"></i> Hapus</button>
+    </form>
+  </div>
+</div>
+
+<fieldset>
+  <legend>Identitas</legend>
+  <table class="kv">
+    <tr><th>Type Device</th><td>{{ r['type_device'] }}</td><th>Lokasi</th><td>{{ r['lokasi'] }}</td></tr>
+    <tr><th>Tanggal</th><td>{{ r['tanggal'] }}</td><th>Petugas</th><td>{{ r['petugas'] }}</td></tr>
+    <tr><th>Mengetahui / Menyetujui</th><td colspan="3">{{ [r['saksi'], r['saksi2'], r['saksi3']] | select | join(', ') }}</td></tr>
+    <tr><th>Waktu Input</th><td colspan="3">{{ r['created_at'] }}</td></tr>
+  </table>
+</fieldset>
+
+<fieldset>
+  <legend>Checklist</legend>
+  <div class="tablewrap">
+  <table>
+    <tr><th>No</th><th>Item Pengujian</th><th>Hasil</th><th>Keterangan</th></tr>
+    {% for item in CHECKLIST_ITEMS %}
+    {% set i = loop.index %}
+    <tr>
+      <td>{{ i }}</td><td>{{ item.nama }}</td>
+      <td><span class="badge {{ 'ok' if r['hasil'~i]=='OK' else 'nok' }}">{{ r['hasil'~i] }}</span></td>
+      <td>{{ r['ket'~i] }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>Dokumentasi Foto</legend>
+  {% for s in PHOTO_SECTIONS %}
+  <div class="photoblock">
+    <strong>{{ loop.index }}. {{ s.judul }}</strong>
+    <div class="thumbs">
+      {% for f in photos[s.key] %}
+      <a href="/evidence/{{ folder }}/{{ f }}" target="_blank"><img src="/evidence/{{ folder }}/{{ f }}" alt="{{ f }}"></a>
+      {% else %}<span class="empty">— tidak ada foto —</span>{% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</fieldset>
+
+{% if r['catatan'] %}
+<fieldset><legend>Catatan Tambahan</legend><p>{{ r['catatan'] }}</p></fieldset>
+{% endif %}
+{% endblock %}

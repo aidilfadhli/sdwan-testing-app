@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="scanbox">
+  <form action="/scan" method="get">
+    <label for="sn">Scan Serial Number (S/N) perangkat di sini</label>
+    <div class="scanrow">
+      <input id="sn" name="sn" autofocus autocomplete="off"
+             placeholder="Arahkan scanner ke label S/N lalu tembak…">
+      <button type="button" class="btn primary" title="Scan pakai kamera HP"
+              onclick="openScan(sn => location.href = '/scan?sn=' + encodeURIComponent(sn))"><i data-lucide="camera" class="icon"></i> Kamera</button>
+    </div>
+    <p class="hint">Scanner IWare bekerja seperti keyboard — hasil scan otomatis masuk & Enter membuka form.<br>
+       Dari HP: tombol <strong><i data-lucide="camera" class="icon"></i> Kamera</strong> memakai kamera HP sebagai scanner.</p>
+  </form>
+</section>
+
+<section class="joinbox">
+  <img src="/qr" alt="QR alamat aplikasi">
+  <div>
+    <strong>Akses dari HP operator</strong>
+    <p>Scan QR ini dengan kamera HP, atau buka:</p>
+    <p class="joinurl">{{ server_url }}</p>
+    <p class="hint">HP harus tersambung ke Wi-Fi yang sama. Saat pertama kali muncul peringatan sertifikat,
+       pilih <em>Advanced / Lanjutkan</em> — koneksi tetap di jaringan lokal Anda.</p>
+  </div>
+</section>
+
+<section class="stats">
+  <div class="stat"><span class="num">{{ stats['total'] or 0 }}</span><span>Total Diuji</span></div>
+  <div class="stat pass"><span class="num">{{ stats['lulus'] or 0 }}</span><span>PASS</span></div>
+  <div class="stat fail"><span class="num">{{ stats['gagal'] or 0 }}</span><span>FAIL</span></div>
+</section>
+
+<section>
+  <div class="listhead">
+    <h2>Riwayat Pengujian {% if q %}<small>— hasil cari "{{ q }}"</small>{% endif %}</h2>
+    <form action="/" method="get" class="search">
+      <input name="q" value="{{ q }}" placeholder="Cari S/N…">
+      <button class="btn primary">Cari</button>
+    </form>
+  </div>
+
+  <div class="bulkbar">
+    <label class="checklabel"><input type="checkbox" id="selectall" onclick="toggleAll(this)"> Pilih Semua</label>
+    <span id="selcount" class="hint">0 dipilih</span>
+    <button type="button" class="btn primary" id="bulkbtn" disabled onclick="printSelected()"><i data-lucide="printer" class="icon"></i> Print Terpilih</button>
+    <button type="button" class="btn" onclick="printAll()"><i data-lucide="printer" class="icon"></i> Print Semua ({{ rows|length }})</button>
+  </div>
+  <p class="hint">Membuka tab baru berisi laporan siap cetak — dialog Print langsung muncul, tanpa perlu buka Word.</p>
+  <div class="tablewrap">
+  <table>
+    <tr><th></th><th>ID</th><th>Serial Number</th><th>Type Device</th><th>Tanggal</th><th>Petugas</th><th>Status</th><th></th></tr>
+    {% for r in rows %}
+    <tr>
+      <td><input type="checkbox" class="rowsel" value="{{ r['id'] }}" onchange="updateBulk()"></td>
+      <td>{{ r['id'] }}</td>
+      <td><a href="/device/{{ r['id'] }}">{{ r['serial_number'] }}</a></td>
+      <td>{{ r['type_device'] }}</td>
+      <td>{{ r['tanggal'] }}</td>
+      <td>{{ r['petugas'] }}</td>
+      <td><span class="badge {{ 'ok' if r['status']=='PASS' else 'nok' }}">{{ r['status'] }}</span></td>
+      <td class="rowactions">
+        <a class="btn small" href="/print?ids={{ r['id'] }}" target="_blank" title="Print laporan ini"><i data-lucide="printer" class="icon"></i></a>
+        <a class="btn small" href="/report/{{ r['id'] }}"><i data-lucide="download" class="icon"></i> BA .docx</a>
+        <button type="button" class="btn small danger" title="Hapus laporan (perlu PIN supervisor)"
+                onclick="deleteReport({{ r['id'] }}, '{{ r['serial_number'] }}')"><i data-lucide="trash-2" class="icon"></i></button>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="8" class="empty">Belum ada data pengujian.</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+</section>
+<form method="post" id="deleteform" style="display:none">
+  <input type="hidden" name="pin">
+</form>
+<script>
+/* fokus kembali ke kolom scan setelah 10 dtk idle, agar scanner selalu siap */
+let t; const snInput = document.getElementById('sn');
+document.addEventListener('click', () => { clearTimeout(t); t = setTimeout(() => snInput && snInput.focus(), 10000); });
+
+/* Cetak: buka tab baru berisi laporan terpilih dalam format siap cetak. */
+function updateBulk() {
+  const checked = [...document.querySelectorAll('.rowsel:checked')];
+  document.getElementById('selcount').textContent = checked.length + ' dipilih';
+  document.getElementById('bulkbtn').disabled = checked.length === 0;
+  document.getElementById('selectall').checked =
+    checked.length > 0 && checked.length === document.querySelectorAll('.rowsel').length;
+}
+function toggleAll(box) {
+  document.querySelectorAll('.rowsel').forEach(c => c.checked = box.checked);
+  updateBulk();
+}
+function printSelected() {
+  const ids = [...document.querySelectorAll('.rowsel:checked')].map(c => c.value);
+  if (ids.length) window.open('/print?ids=' + ids.join(','), '_blank');
+}
+function printAll() {
+  const ids = [...document.querySelectorAll('.rowsel')].map(c => c.value);
+  if (ids.length) window.open('/print?ids=' + ids.join(','), '_blank');
+}
+
+/* Hapus satu laporan langsung dari daftar — butuh PIN supervisor. */
+function deleteReport(id, sn) {
+  const p = prompt('Masukkan PIN supervisor untuk menghapus laporan ' + sn + ':');
+  if (!p) return;
+  const f = document.getElementById('deleteform');
+  f.action = '/device/' + id + '/delete';
+  f.pin.value = p;
+  f.submit();
+}
+</script>
+{% endblock %}

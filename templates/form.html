@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Form Uji Fungsi{% endblock %}
+{% block content %}
+<h1>Berita Acara Uji Fungsi — Fortinet SD-WAN Edge</h1>
+
+<form action="/submit" method="post" enctype="multipart/form-data" class="testform" id="testform">
+
+<fieldset>
+  <legend>I. Identitas Perangkat & Pengujian</legend>
+  <div class="grid2">
+    <label>Serial Number (S/N) *
+      <span class="scanrow">
+        <input name="serial_number" id="snfield" value="{{ sn }}" required autocomplete="off"
+               {% if not sn %}autofocus{% endif %} placeholder="Scan label S/N di sini">
+        <button type="button" class="btn" title="Scan pakai kamera"
+                onclick="openScan(sn => document.getElementById('snfield').value = sn)"><i data-lucide="camera" class="icon"></i></button>
+      </span>
+    </label>
+    <label>Type Device
+      <input name="type_device" id="type_device" value="Fortigate 40F" autocomplete="off">
+    </label>
+    <label>Lokasi Pengujian
+      <input name="lokasi" id="lokasi" value="Gudang DCS Telkom Kebon Sirih">
+    </label>
+    <label>Tanggal Pengujian
+      <input name="tanggal" type="date" value="{{ today }}">
+    </label>
+    <label>Petugas Penguji
+      <input name="petugas" id="petugas">
+    </label>
+    <label>Mengetahui / Menyetujui 1
+      <input name="saksi" id="saksi">
+    </label>
+    <label>Mengetahui / Menyetujui 2
+      <input name="saksi2" id="saksi2">
+    </label>
+    <label>Mengetahui / Menyetujui 3
+      <input name="saksi3" id="saksi3">
+    </label>
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>II. Checklist Uji Fungsi</legend>
+  {% for item in CHECKLIST_ITEMS %}
+  {% set i = loop.index %}
+  <div class="checkitem">
+    <div class="checkinfo">
+      <strong>{{ i }}. {{ item.nama }}</strong>
+      <p class="prosedur">{{ item.prosedur }}</p>
+    </div>
+    <div class="checkinput">
+      <div class="okbuttons">
+        <input type="radio" id="ok{{ i }}" name="hasil{{ i }}" value="OK" required>
+        <label class="okbtn" for="ok{{ i }}">OK</label>
+        <input type="radio" id="nok{{ i }}" name="hasil{{ i }}" value="NOT OK">
+        <label class="nokbtn" for="nok{{ i }}">NOT OK</label>
+      </div>
+      <input name="ket{{ i }}" placeholder="Keterangan (opsional)">
+    </div>
+  </div>
+  {% endfor %}
+</fieldset>
+
+<fieldset>
+  <legend>III. Lampiran Dokumentasi Foto</legend>
+  {% for s in PHOTO_SECTIONS %}
+  <div class="photoitem">
+    <strong>{{ loop.index }}. {{ s.judul }}</strong>
+    <div class="photoinputs">
+      <input type="file" name="photo_{{ s.key }}" accept="image/*" capture="environment"
+             onchange="previewPhoto(this)">
+    </div>
+    <button type="button" class="btn small" onclick="addPhotoInput(this)">＋ Tambah foto lagi</button>
+  </div>
+  {% endfor %}
+  <p class="hint">Foto diambil <strong>langsung dari kamera</strong> (bukan galeri).
+     Tekan <em>＋ Tambah foto lagi</em> untuk lebih dari satu foto per bagian.</p>
+</fieldset>
+
+<fieldset>
+  <legend>IV. Catatan Tambahan</legend>
+  <textarea name="catatan" rows="3"></textarea>
+</fieldset>
+
+<button type="submit" class="btn primary big" id="submitbtn"><i data-lucide="save" class="icon"></i> Simpan & Buat Berita Acara</button>
+</form>
+
+<script>
+/* ingat isian rutin antar-pengujian di perangkat yang sama */
+['type_device','lokasi','petugas','saksi','saksi2','saksi3'].forEach(k => {
+  const el = document.getElementById(k);
+  const saved = localStorage.getItem('mt_'+k);
+  if (saved !== null && saved !== '') el.value = saved;
+  el.addEventListener('change', () => localStorage.setItem('mt_'+k, el.value));
+});
+
+/* foto: tambah input kamera baru per bagian + tampilkan thumbnail hasil jepretan */
+function addPhotoInput(btn) {
+  const box = btn.parentElement.querySelector('.photoinputs');
+  const first = box.querySelector('input[type=file]');
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.name = first.name; inp.accept = 'image/*';
+  inp.setAttribute('capture', 'environment');
+  inp.onchange = () => previewPhoto(inp);
+  box.appendChild(inp);
+  inp.click();
+}
+function previewPhoto(input) {
+  let img = input.nextElementSibling;
+  if (!img || img.tagName !== 'IMG') {
+    img = document.createElement('img');
+    img.className = 'photopreview';
+    input.after(img);
+  }
+  if (input.files && input.files[0]) img.src = URL.createObjectURL(input.files[0]);
+}
+document.getElementById('testform').addEventListener('submit', () => {
+  const b = document.getElementById('submitbtn');
+  b.disabled = true; b.textContent = 'Menyimpan & menyusun BA…';
+});
+</script>
+{% endblock %}

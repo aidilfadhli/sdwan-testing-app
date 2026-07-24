@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Cetak Berita Acara ({{ reports|length }} laporan)</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Arial, sans-serif; color: #111;
+         margin: 0; background: #ccc; }
+  .toolbar { position: sticky; top: 0; background: #14315c; color: #fff;
+             padding: 10px 16px; display: flex; justify-content: space-between;
+             align-items: center; z-index: 10; }
+  .toolbar button { background: #fff; color: #14315c; border: none; padding: 8px 16px;
+             border-radius: 6px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+  .icon { width: 16px; height: 16px; stroke-width: 2.2px; vertical-align: middle; }
+  .page { background: #fff; max-width: 850px; margin: 16px auto; padding: 18mm 16mm;
+          box-shadow: 0 1px 6px rgba(0,0,0,.3); }
+  .page + .page { break-before: page; page-break-before: always; }
+  h1 { font-size: 1.15rem; text-align: center; margin: 0; }
+  h2.sub { font-size: 1rem; text-align: center; margin: 2px 0 14px; font-weight: 600; }
+  h3 { font-size: .95rem; background: #eef2f8; padding: 5px 8px; margin: 16px 0 6px; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 4px; }
+  td, th { border: 1px solid #999; padding: 5px 7px; font-size: .82rem; vertical-align: top; }
+  .identtbl td:first-child { width: 32%; font-weight: 600; background: #f7f8fa; }
+  .checktbl th { background: #f7f8fa; }
+  .checktbl td.no { width: 4%; text-align: center; }
+  .checktbl td.hasil { width: 9%; text-align: center; font-weight: 700; }
+  .ok { color: #1e7d32; } .nok { color: #c62828; }
+  .photosec { margin-bottom: 10px; }
+  .photosec strong { display: block; font-size: .85rem; margin-bottom: 4px; }
+  .photogrid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .photogrid img { height: 150px; border: 1px solid #ccc; object-fit: cover; }
+  .nophoto { color: #888; font-size: .8rem; font-style: italic; }
+  .catatan { font-size: .85rem; min-height: 20px; }
+  .sigwrap { margin-top: 26px; }
+  .sig1 { text-align: center; margin-bottom: 30px; }
+  .sigrow { display: flex; justify-content: space-around; text-align: center; }
+  .sigrow div { flex: 1; }
+  .signame { margin-top: 46px; font-weight: 600; border-top: 1px solid #333;
+             display: inline-block; padding-top: 4px; min-width: 160px; }
+  .sigtitle { font-size: .85rem; }
+
+  @media print {
+    body { background: #fff; }
+    .toolbar { display: none; }
+    .page { box-shadow: none; margin: 0; max-width: none; }
+  }
+</style>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div class="toolbar">
+  <span>{{ reports|length }} laporan siap dicetak</span>
+  <button onclick="window.print()"><i data-lucide="printer" class="icon"></i> Print</button>
+</div>
+
+{% for item in reports %}
+{% set r = item.r %}
+<div class="page">
+  <h1>BERITA ACARA UJI FUNGSI PERANGKAT</h1>
+  <h2 class="sub">Fortinet SD-WAN Edge</h2>
+
+  <h3>I. Identitas Perangkat &amp; Pengujian</h3>
+  <table class="identtbl">
+    <tr><td>Type Device</td><td>{{ r['type_device'] }}</td></tr>
+    <tr><td>Serial Number (S/N)</td><td>{{ r['serial_number'] }}</td></tr>
+    <tr><td>Lokasi Pengujian</td><td>{{ r['lokasi'] }}</td></tr>
+    <tr><td>Tanggal Pengujian</td><td>{{ r['tanggal'] }}</td></tr>
+    <tr><td>Petugas Penguji</td><td>{{ r['petugas'] }}</td></tr>
+  </table>
+
+  <h3>II. Checklist Uji Fungsi</h3>
+  <table class="checktbl">
+    <tr><th class="no">No</th><th>Item Pengujian</th><th>Prosedur / Cara Uji</th><th>Hasil</th><th>Keterangan</th></tr>
+    {% for item2 in CHECKLIST_ITEMS %}
+    {% set i = loop.index %}
+    <tr>
+      <td class="no">{{ i }}</td>
+      <td>{{ item2.nama }}</td>
+      <td>{{ item2.prosedur }}</td>
+      <td class="hasil {{ 'ok' if r['hasil'~i]=='OK' else 'nok' }}">{{ r['hasil'~i] }}</td>
+      <td>{{ r['ket'~i] }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <h3>III. Lampiran Dokumentasi Foto</h3>
+  {% for s in PHOTO_SECTIONS %}
+  <div class="photosec">
+    <strong>{{ loop.index }}. {{ s.judul }}</strong>
+    <div class="photogrid">
+      {% for f in item.photos[s.key] %}
+      <img src="/evidence/{{ item.folder }}/{{ f }}" alt="">
+      {% else %}<span class="nophoto">— tidak ada foto —</span>{% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+
+  <h3>IV. Catatan Tambahan</h3>
+  <p class="catatan">{{ r['catatan'] }}</p>
+
+  <div class="sigwrap">
+    <div class="sig1">
+      <div class="sigtitle">Petugas Penguji</div>
+      <div class="signame">{{ r['petugas'] }}&nbsp;</div>
+    </div>
+    <div class="sigtitle" style="text-align:center; margin-bottom:6px;">Mengetahui / Menyetujui</div>
+    <div class="sigrow">
+      <div><div class="signame">{{ r['saksi'] }}&nbsp;</div></div>
+      <div><div class="signame">{{ r['saksi2'] }}&nbsp;</div></div>
+      <div><div class="signame">{{ r['saksi3'] }}&nbsp;</div></div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<script>
+  lucide.createIcons();
+  window.onload = () => window.print();
+</script>
+</body>
+</html>
