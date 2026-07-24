@@ -1,27 +1,26 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="scanbox">
-  <form action="/scan" method="get">
-    <label for="sn">Scan Serial Number (S/N) perangkat di sini</label>
-    <div class="scanrow">
-      <input id="sn" name="sn" autofocus autocomplete="off"
-             placeholder="Arahkan scanner ke label S/N lalu tembak…">
-      <button type="button" class="btn primary" title="Scan pakai kamera HP"
-              onclick="openScan(sn => location.href = '/scan?sn=' + encodeURIComponent(sn))"><i data-lucide="camera" class="icon"></i> Kamera</button>
-    </div>
-    <p class="hint">Scanner IWare bekerja seperti keyboard — hasil scan otomatis masuk & Enter membuka form.<br>
-       Dari HP: tombol <strong><i data-lucide="camera" class="icon"></i> Kamera</strong> memakai kamera HP sebagai scanner.</p>
-  </form>
-</section>
+<section class="top-actions">
+  <div class="scanbox">
+    <form action="/scan" method="get">
+      <label for="sn">Mulai Uji Fungsi</label>
+      <div class="scanrow">
+        <input id="sn" name="sn" autofocus autocomplete="off"
+               placeholder="Scan S/N dengan barcode scanner / kamera...">
+        <button type="button" class="btn primary btn-icon" title="Scan pakai kamera HP"
+                onclick="openScan(sn => location.href = '/scan?sn=' + encodeURIComponent(sn))">
+          <i data-lucide="camera" class="icon"></i>
+        </button>
+      </div>
+    </form>
+  </div>
 
-<section class="joinbox">
-  <img src="/qr" alt="QR alamat aplikasi">
-  <div>
-    <strong>Akses dari HP operator</strong>
-    <p>Scan QR ini dengan kamera HP, atau buka:</p>
-    <p class="joinurl">{{ server_url }}</p>
-    <p class="hint">HP harus tersambung ke Wi-Fi yang sama. Saat pertama kali muncul peringatan sertifikat,
-       pilih <em>Advanced / Lanjutkan</em> — koneksi tetap di jaringan lokal Anda.</p>
+  <div class="joinbox">
+    <img src="/qr" alt="QR Akses">
+    <div class="join-info">
+      <strong>Akses via HP</strong>
+      <span class="joinurl">{{ server_url }}</span>
+    </div>
   </div>
 </section>
 
@@ -31,43 +30,53 @@
   <div class="stat fail"><span class="num">{{ stats['gagal'] or 0 }}</span><span>FAIL</span></div>
 </section>
 
-<section>
+<section id="table-section">
   <div class="listhead">
     <h2>Riwayat Pengujian {% if q %}<small>— hasil cari "{{ q }}"</small>{% endif %}</h2>
-    <form action="/" method="get" class="search">
-      <input name="q" value="{{ q }}" placeholder="Cari S/N…">
-      <button class="btn primary">Cari</button>
-    </form>
+    <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+      <form action="/" method="get" class="search">
+        <div class="search-container">
+          <input name="q" id="search-input" value="{{ q }}" placeholder="Cari S/N…" autocomplete="off">
+          <div id="search-suggestions" class="search-suggestions" hidden></div>
+        </div>
+        <button class="btn primary">Cari</button>
+      </form>
+      <button type="button" class="btn" id="select-mode-btn" onclick="toggleSelectMode()">
+        <i data-lucide="check-square" class="icon"></i> Pilih
+      </button>
+    </div>
   </div>
 
   <div class="bulkbar">
-    <label class="checklabel"><input type="checkbox" id="selectall" onclick="toggleAll(this)"> Pilih Semua</label>
-    <span id="selcount" class="hint">0 dipilih</span>
-    <button type="button" class="btn primary" id="bulkbtn" disabled onclick="printSelected()"><i data-lucide="printer" class="icon"></i> Print Terpilih</button>
-    <button type="button" class="btn" onclick="printAll()"><i data-lucide="printer" class="icon"></i> Print Semua ({{ rows|length }})</button>
+    <div class="bulk-header">
+      <label class="checklabel"><input type="checkbox" id="selectall" onclick="toggleAll(this)"> Pilih Semua</label>
+      <span id="selcount" class="hint">0 dipilih</span>
+    </div>
+    <div class="bulk-buttons">
+      <button type="button" class="btn primary small" id="bulkbtn" disabled onclick="printSelected()"><i data-lucide="printer" class="icon"></i> Print</button>
+      <button type="button" class="btn small" id="bulkdlbtn" disabled onclick="downloadSelected()"><i data-lucide="download" class="icon"></i> Unduh BA</button>
+      <button type="button" class="btn danger small" id="bulkdelbtn" disabled onclick="deleteSelected()"><i data-lucide="trash-2" class="icon"></i> Hapus</button>
+      <button type="button" class="btn danger small" onclick="toggleSelectMode()"><i data-lucide="x" class="icon"></i> Batal</button>
+    </div>
   </div>
-  <p class="hint">Membuka tab baru berisi laporan siap cetak — dialog Print langsung muncul, tanpa perlu buka Word.</p>
   <div class="tablewrap">
   <table>
-    <tr><th></th><th>ID</th><th>Serial Number</th><th>Type Device</th><th>Tanggal</th><th>Petugas</th><th>Status</th><th></th></tr>
+    <tr><th class="th-check"></th><th class="th-id">ID</th><th>Serial Number</th><th>Type Device</th><th>Tanggal</th><th>Petugas</th><th>Status</th></tr>
     {% for r in rows %}
-    <tr>
-      <td><input type="checkbox" class="rowsel" value="{{ r['id'] }}" onchange="updateBulk()"></td>
-      <td>{{ r['id'] }}</td>
-      <td><a href="/device/{{ r['id'] }}">{{ r['serial_number'] }}</a></td>
-      <td>{{ r['type_device'] }}</td>
-      <td>{{ r['tanggal'] }}</td>
-      <td>{{ r['petugas'] }}</td>
-      <td><span class="badge {{ 'ok' if r['status']=='PASS' else 'nok' }}">{{ r['status'] }}</span></td>
-      <td class="rowactions">
-        <a class="btn small" href="/print?ids={{ r['id'] }}" target="_blank" title="Print laporan ini"><i data-lucide="printer" class="icon"></i></a>
-        <a class="btn small" href="/report/{{ r['id'] }}"><i data-lucide="download" class="icon"></i> BA .docx</a>
-        <button type="button" class="btn small danger" title="Hapus laporan (perlu PIN supervisor)"
-                onclick="deleteReport({{ r['id'] }}, '{{ r['serial_number'] }}')"><i data-lucide="trash-2" class="icon"></i></button>
+    <tr class="datarow" data-id="{{ r['id'] }}" data-sn="{{ r['serial_number'] }}">
+      <td class="td-check"><input type="checkbox" class="rowsel" value="{{ r['id'] }}" onchange="updateBulk()"></td>
+      <td class="td-id">{{ r['id'] }}</td>
+      <td class="td-sn"><a href="/device/{{ r['id'] }}" class="sn-link">{{ r['serial_number'] }}</a></td>
+      <td class="td-type">{{ r['type_device'] }}</td>
+      <td class="td-date">{{ r['tanggal'] }}</td>
+      <td class="td-user">{{ r['petugas'] }}</td>
+      <td class="td-status">
+        <span class="badge {{ 'ok' if r['status']=='PASS' else 'nok' }}">{{ r['status'] }}</span>
+        <div class="status-dot {{ 'ok' if r['status']=='PASS' else 'nok' }}"></div>
       </td>
     </tr>
     {% else %}
-    <tr><td colspan="8" class="empty">Belum ada data pengujian.</td></tr>
+    <tr><td colspan="7" class="empty">Belum ada data pengujian.</td></tr>
     {% endfor %}
   </table>
   </div>
@@ -75,6 +84,30 @@
 <form method="post" id="deleteform" style="display:none">
   <input type="hidden" name="pin">
 </form>
+<form method="post" id="bulkdeleteform" action="/bulk-delete" style="display:none">
+  <input type="hidden" name="pin">
+  <input type="hidden" name="ids">
+</form>
+
+<div id="action-modal" hidden>
+  <div class="action-panel">
+    <div class="action-head">
+      <strong id="action-sn">Action S/N</strong>
+      <button type="button" class="btn small" onclick="closeActionModal()"><i data-lucide="x" class="icon"></i> Tutup</button>
+    </div>
+    <div class="action-body" style="display:flex; flex-direction:column; gap:12px;">
+      <a class="btn primary big" id="action-print" target="_blank"><i data-lucide="printer" class="icon"></i> Print Laporan</a>
+      <a class="btn big" id="action-download"><i data-lucide="download" class="icon"></i> Unduh BA .docx</a>
+      <button type="button" class="btn danger big" id="action-delete"><i data-lucide="trash-2" class="icon"></i> Hapus Laporan</button>
+    </div>
+  </div>
+</div>
+
+<div id="context-menu" class="context-menu" hidden>
+  <div class="context-item" id="ctx-print"><i data-lucide="printer" class="icon"></i> Print Laporan</div>
+  <a class="context-item" id="ctx-download"><i data-lucide="download" class="icon"></i> Unduh BA (.docx)</a>
+  <div class="context-item danger" id="ctx-delete"><i data-lucide="trash-2" class="icon"></i> Hapus Laporan</div>
+</div>
 <script>
 /* fokus kembali ke kolom scan setelah 10 dtk idle, agar scanner selalu siap */
 let t; const snInput = document.getElementById('sn');
@@ -85,6 +118,8 @@ function updateBulk() {
   const checked = [...document.querySelectorAll('.rowsel:checked')];
   document.getElementById('selcount').textContent = checked.length + ' dipilih';
   document.getElementById('bulkbtn').disabled = checked.length === 0;
+  document.getElementById('bulkdlbtn').disabled = checked.length === 0;
+  document.getElementById('bulkdelbtn').disabled = checked.length === 0;
   document.getElementById('selectall').checked =
     checked.length > 0 && checked.length === document.querySelectorAll('.rowsel').length;
 }
@@ -92,23 +127,242 @@ function toggleAll(box) {
   document.querySelectorAll('.rowsel').forEach(c => c.checked = box.checked);
   updateBulk();
 }
+function toggleSelectMode() {
+  const sec = document.getElementById('table-section');
+  sec.classList.toggle('select-mode-active');
+  // clear selections when closing
+  if (!sec.classList.contains('select-mode-active')) {
+    document.getElementById('selectall').checked = false;
+    toggleAll({checked: false});
+  }
+}
 function printSelected() {
   const ids = [...document.querySelectorAll('.rowsel:checked')].map(c => c.value);
   if (ids.length) window.open('/print?ids=' + ids.join(','), '_blank');
 }
-function printAll() {
-  const ids = [...document.querySelectorAll('.rowsel')].map(c => c.value);
-  if (ids.length) window.open('/print?ids=' + ids.join(','), '_blank');
+function downloadSelected() {
+  const ids = [...document.querySelectorAll('.rowsel:checked')].map(c => c.value);
+  if (ids.length) window.location.href = '/bulk-report?ids=' + ids.join(',');
 }
 
-/* Hapus satu laporan langsung dari daftar — butuh PIN supervisor. */
-function deleteReport(id, sn) {
-  const p = prompt('Masukkan PIN supervisor untuk menghapus laporan ' + sn + ':');
+async function deleteSelected() {
+  const ids = [...document.querySelectorAll('.rowsel:checked')].map(c => c.value);
+  if (!ids.length) return;
+  const p = await requestPin('Masukkan PIN supervisor untuk menghapus ' + ids.length + ' laporan terpilih:');
+  if (!p) return;
+  const f = document.getElementById('bulkdeleteform');
+  f.pin.value = p;
+  f.ids.value = ids.join(',');
+  f.submit();
+}
+
+async function deleteReport(id, sn) {
+  const p = await requestPin('Masukkan PIN supervisor untuk menghapus laporan ' + sn + ':');
   if (!p) return;
   const f = document.getElementById('deleteform');
   f.action = '/device/' + id + '/delete';
   f.pin.value = p;
   f.submit();
+}
+
+/* Long press handler for mobile rows */
+let pressTimer;
+let isLongPress = false;
+const actionModal = document.getElementById('action-modal');
+
+document.querySelectorAll('.datarow').forEach(row => {
+  // Mobile touch
+  row.addEventListener('touchstart', (e) => {
+    if (e.target.tagName.toLowerCase() === 'input') return;
+    pressTimer = setTimeout(() => {
+      isLongPress = true;
+      showActionModal(row.dataset.id, row.dataset.sn);
+    }, 500); // 500ms trigger
+  }, {passive: true});
+  row.addEventListener('touchend', clearPress);
+  row.addEventListener('touchmove', clearPress);
+  
+  // Desktop mouse
+  row.addEventListener('mousedown', (e) => {
+    if (e.target.tagName.toLowerCase() === 'input') return;
+    if (e.button !== 0) return;
+    pressTimer = setTimeout(() => {
+      isLongPress = true;
+      showActionModal(row.dataset.id, row.dataset.sn);
+    }, 500);
+  });
+  row.addEventListener('mouseup', clearPress);
+  row.addEventListener('mouseleave', clearPress);
+
+  // Prevent default context menu & show custom context menu
+  row.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    if (isLongPress) return;
+    showContextMenu(e.clientX, e.clientY, row.dataset.id, row.dataset.sn);
+  });
+
+  // Handle row click (navigate to device), but prevent if long press
+  row.addEventListener('click', (e) => {
+    if (e.target.closest('.td-check')) return;
+    
+    if (isLongPress) {
+      e.preventDefault();
+      e.stopPropagation();
+      isLongPress = false;
+      return;
+    }
+    
+    const link = row.querySelector('.sn-link');
+    if (link && e.target !== link && !link.contains(e.target)) {
+      window.location.href = link.href;
+    }
+  });
+
+  const link = row.querySelector('.sn-link');
+  if (link) {
+    link.addEventListener('click', (e) => {
+      e.preventDefault(); // Prevent navigation
+      if (isLongPress) {
+        isLongPress = false;
+        return;
+      }
+      
+      const snText = link.textContent.trim();
+      navigator.clipboard.writeText(snText).then(() => {
+        const originalText = link.textContent;
+        link.textContent = 'Tersalin!';
+        link.style.color = 'var(--success)';
+        setTimeout(() => {
+          link.textContent = originalText;
+          link.style.color = '';
+        }, 1200);
+      }).catch(err => {
+        console.error('Gagal menyalin:', err);
+      });
+    });
+  }
+});
+
+function clearPress() {
+  clearTimeout(pressTimer);
+  // Reset isLongPress after a slight delay to allow click event to fire and be blocked
+  setTimeout(() => { isLongPress = false; }, 50);
+}
+
+function showActionModal(id, sn) {
+  if (navigator.vibrate) navigator.vibrate(50);
+  document.getElementById('action-sn').textContent = "Opsi Laporan: " + sn;
+  document.getElementById('action-print').href = '/print?ids=' + id;
+  document.getElementById('action-download').href = '/report/' + id;
+  document.getElementById('action-delete').onclick = () => { closeActionModal(); deleteReport(id, sn); };
+  actionModal.hidden = false;
+  lucide.createIcons(); // ensure icons in modal render
+}
+
+function closeActionModal() {
+  actionModal.hidden = true;
+}
+
+const ctxMenu = document.getElementById('context-menu');
+function showContextMenu(x, y, id, sn) {
+  const winWidth = window.innerWidth;
+  const winHeight = window.innerHeight;
+  let left = x;
+  let top = y;
+  if (x + 190 > winWidth) left = winWidth - 190;
+  if (y + 140 > winHeight) top = winHeight - 140;
+  
+  ctxMenu.style.left = left + 'px';
+  ctxMenu.style.top = top + 'px';
+  
+  document.getElementById('ctx-print').onclick = () => { hideContextMenu(); window.open('/print?ids=' + id, '_blank'); };
+  document.getElementById('ctx-download').href = '/report/' + id;
+  document.getElementById('ctx-download').onclick = () => { hideContextMenu(); };
+  document.getElementById('ctx-delete').onclick = () => { hideContextMenu(); deleteReport(id, sn); };
+  
+  ctxMenu.hidden = false;
+  lucide.createIcons();
+}
+
+function hideContextMenu() {
+  if (ctxMenu) ctxMenu.hidden = true;
+}
+
+document.addEventListener('click', (e) => {
+  if (ctxMenu && !e.target.closest('#context-menu')) {
+    hideContextMenu();
+  }
+});
+document.addEventListener('scroll', hideContextMenu);
+
+/* Live Search Suggestions */
+const searchInput = document.getElementById('search-input');
+const searchSuggestions = document.getElementById('search-suggestions');
+let searchDebounceTimer;
+
+if (searchInput && searchSuggestions) {
+  searchInput.addEventListener('input', (e) => {
+    const val = e.target.value.trim();
+    
+    // Live filter existing table rows locally for instant feedback
+    const rows = document.querySelectorAll('.datarow');
+    rows.forEach(r => {
+      const text = r.textContent.toLowerCase();
+      if (!val || text.includes(val.toLowerCase())) {
+        r.style.display = '';
+      } else {
+        r.style.display = 'none';
+      }
+    });
+
+    clearTimeout(searchDebounceTimer);
+    if (!val) {
+      searchSuggestions.hidden = true;
+      return;
+    }
+
+    searchDebounceTimer = setTimeout(() => {
+      fetch('/api/search?q=' + encodeURIComponent(val))
+        .then(res => res.json())
+        .then(data => {
+          if (!data.results || data.results.length === 0) {
+            searchSuggestions.innerHTML = '<div class="suggestion-item empty-suggestion" style="padding:12px; color:var(--text-muted); font-size:0.85rem; text-align:center;">Tidak ada hasil cocok</div>';
+            searchSuggestions.hidden = false;
+            return;
+          }
+
+          let html = '';
+          data.results.forEach(item => {
+            const badgeClass = item.status === 'PASS' ? 'ok' : 'nok';
+            html += `
+              <a href="/device/${item.id}" class="suggestion-item">
+                <div class="suggestion-info">
+                  <span class="suggestion-sn">${item.serial_number}</span>
+                  <span class="suggestion-meta">${item.type_device} • ${item.petugas} (${item.tanggal})</span>
+                </div>
+                <span class="badge ${badgeClass}">${item.status}</span>
+              </a>
+            `;
+          });
+
+          searchSuggestions.innerHTML = html;
+          searchSuggestions.hidden = false;
+        })
+        .catch(err => console.error(err));
+    }, 150);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.search-container')) {
+      searchSuggestions.hidden = true;
+    }
+  });
+
+  searchInput.addEventListener('focus', () => {
+    if (searchInput.value.trim() && searchSuggestions.children.length > 0) {
+      searchSuggestions.hidden = false;
+    }
+  });
 }
 </script>
 {% endblock %}

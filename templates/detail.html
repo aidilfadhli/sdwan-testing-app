@@ -12,21 +12,41 @@
     <a class="btn primary" href="/print?ids={{ r['id'] }}" target="_blank"><i data-lucide="printer" class="icon"></i> Print</a>
     <a class="btn" href="/report/{{ r['id'] }}"><i data-lucide="download" class="icon"></i> Unduh Berita Acara (.docx)</a>
     <a class="btn" href="/form?sn={{ r['serial_number'] }}"><i data-lucide="refresh-cw" class="icon"></i> Uji Ulang</a>
-    <form method="post" action="/device/{{ r['id'] }}/delete" onsubmit="return askPin(this)">
-      <input type="hidden" name="pin">
-      <button type="submit" class="btn danger"><i data-lucide="trash-2" class="icon"></i> Hapus</button>
+    <form method="post" action="/device/{{ r['id'] }}/delete" id="detail-delete-form">
+      <input type="hidden" name="pin" id="detail-pin-input">
+      <button type="button" class="btn danger" onclick="confirmDeleteDetail('{{ r['serial_number'] }}')"><i data-lucide="trash-2" class="icon"></i> Hapus</button>
     </form>
   </div>
 </div>
 
 <fieldset>
   <legend>Identitas</legend>
-  <table class="kv">
-    <tr><th>Type Device</th><td>{{ r['type_device'] }}</td><th>Lokasi</th><td>{{ r['lokasi'] }}</td></tr>
-    <tr><th>Tanggal</th><td>{{ r['tanggal'] }}</td><th>Petugas</th><td>{{ r['petugas'] }}</td></tr>
-    <tr><th>Mengetahui / Menyetujui</th><td colspan="3">{{ [r['saksi'], r['saksi2'], r['saksi3']] | select | join(', ') }}</td></tr>
-    <tr><th>Waktu Input</th><td colspan="3">{{ r['created_at'] }}</td></tr>
-  </table>
+  <div class="kv-grid">
+    <div class="kv-item">
+      <span class="kv-label">Type Device</span>
+      <span class="kv-val">{{ r['type_device'] }}</span>
+    </div>
+    <div class="kv-item">
+      <span class="kv-label">Lokasi</span>
+      <span class="kv-val">{{ r['lokasi'] }}</span>
+    </div>
+    <div class="kv-item">
+      <span class="kv-label">Tanggal</span>
+      <span class="kv-val">{{ r['tanggal'] }}</span>
+    </div>
+    <div class="kv-item">
+      <span class="kv-label">Petugas</span>
+      <span class="kv-val">{{ r['petugas'] }}</span>
+    </div>
+    <div class="kv-item full-width">
+      <span class="kv-label">Mengetahui / Menyetujui</span>
+      <span class="kv-val">{{ [r['saksi'], r['saksi2'], r['saksi3']] | select | join(', ') or '—' }}</span>
+    </div>
+    <div class="kv-item full-width">
+      <span class="kv-label">Waktu Input</span>
+      <span class="kv-val">{{ r['created_at'] }}</span>
+    </div>
+  </div>
 </fieldset>
 
 <fieldset>
@@ -63,4 +83,14 @@
 {% if r['catatan'] %}
 <fieldset><legend>Catatan Tambahan</legend><p>{{ r['catatan'] }}</p></fieldset>
 {% endif %}
+
+<script>
+async function confirmDeleteDetail(sn) {
+  const p = await requestPin('Masukkan PIN supervisor untuk menghapus laporan ' + sn + ':');
+  if (!p) return;
+  const f = document.getElementById('detail-delete-form');
+  document.getElementById('detail-pin-input').value = p;
+  f.submit();
+}
+</script>
 {% endblock %}

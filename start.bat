@@ -14,6 +14,6 @@ if not exist ".venv\Scripts\python.exe" (
 
 :: Jalankan Uvicorn server dengan SSL
 start https://localhost:8000
-.\.venv\Scripts\python.exe -m uvicorn app:app --host 0.0.0.0 --port 8000 --ssl-keyfile certs/key.pem --ssl-certfile certs/cert.pem
+.\.venv\Scripts\python.exe -m uvicorn app:app --host 0.0.0.0 --port 8000 --reload --ssl-keyfile certs/key.pem --ssl-certfile certs/cert.pem
 
 pause

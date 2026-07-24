@@ -6,6 +6,12 @@
 <title>{% block title %}Mass Testing SD-WAN{% endblock %}</title>
 <link rel="stylesheet" href="/static/style.css">
 <script src="https://unpkg.com/lucide@latest"></script>
+<script>
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+</script>
 </head>
 <body>
 <header class="topbar">
@@ -13,10 +19,15 @@
     <img src="/static/assets/img/logo.png" alt="Telkom Logo" class="brand-logo">
     <a href="/" class="brand">Mass Testing SD-WAN</a>
   </div>
-  <nav>
-    <a href="/form" class="btn primary small"><i data-lucide="plus" class="icon"></i> Uji Baru</a>
-    <a href="/export" class="btn small"><i data-lucide="download" class="icon"></i> Export Excel</a>
-  </nav>
+  <div class="topbar-right">
+    <nav class="nav-menu" id="nav-menu">
+      <a href="/form" class="btn primary small"><i data-lucide="plus" class="icon"></i> Uji Baru</a>
+      <a href="/export" class="btn small"><i data-lucide="download" class="icon"></i> Export Excel</a>
+    </nav>
+    <button type="button" class="btn small" id="theme-toggle" title="Ganti Tema">
+      <i data-lucide="moon" class="icon"></i>
+    </button>
+  </div>
 </header>
 <main>
 {% block content %}{% endblock %}
@@ -30,10 +41,95 @@
     <div id="qrreader"></div>
   </div>
 </div>
+
+<div id="pin-modal" class="pin-modal" hidden>
+  <div class="pin-panel">
+    <div class="pin-head">
+      <div class="pin-icon-wrap"><i data-lucide="shield-alert" class="icon pin-icon"></i></div>
+      <strong>Konfirmasi Supervisor</strong>
+    </div>
+    <p id="pin-message">Masukkan PIN supervisor untuk melanjutkan:</p>
+    <form id="pin-form" onsubmit="handlePinSubmit(event)">
+      <input type="password" id="pin-input" placeholder="Masukkan PIN…" required autocomplete="off">
+      <div class="pin-actions">
+        <button type="button" class="btn" onclick="closePinModal()">Batal</button>
+        <button type="submit" class="btn danger"><i data-lucide="check-circle" class="icon"></i> Konfirmasi</button>
+      </div>
+    </form>
+  </div>
+</div>
+<nav class="mobile-bottom-nav">
+  <a href="/" class="nav-item">
+    <i data-lucide="home" class="icon"></i>
+    <span>Beranda</span>
+  </a>
+  <a href="/form" class="nav-item fab">
+    <div class="fab-inner">
+      <i data-lucide="plus" class="icon"></i>
+    </div>
+  </a>
+  <a href="/export" class="nav-item">
+    <i data-lucide="download" class="icon"></i>
+    <span>Export</span>
+  </a>
+</nav>
+
 <script src="/static/html5-qrcode.min.js"></script>
 <script src="/static/scanner.js"></script>
 <script>
   lucide.createIcons();
+  
+  const themeToggle = document.getElementById('theme-toggle');
+  function updateThemeIcon() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    themeToggle.innerHTML = `<i data-lucide="${isDark ? 'sun' : 'moon'}" class="icon"></i>`;
+    lucide.createIcons({ nameAttr: 'data-lucide' });
+  }
+  if (themeToggle) {
+    updateThemeIcon();
+    themeToggle.addEventListener('click', () => {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      const newTheme = isDark ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateThemeIcon();
+    });
+  }
+
+  /* Custom PIN Modal Handler */
+  let pinResolver = null;
+  const pinModal = document.getElementById('pin-modal');
+  const pinInput = document.getElementById('pin-input');
+  const pinMessage = document.getElementById('pin-message');
+
+  function requestPin(msg) {
+    return new Promise((resolve) => {
+      if (pinMessage) pinMessage.textContent = msg;
+      if (pinInput) pinInput.value = '';
+      if (pinModal) pinModal.hidden = false;
+      setTimeout(() => pinInput && pinInput.focus(), 100);
+      pinResolver = resolve;
+      if (window.lucide) lucide.createIcons();
+    });
+  }
+
+  function handlePinSubmit(e) {
+    e.preventDefault();
+    const val = pinInput ? pinInput.value.trim() : '';
+    if (pinModal) pinModal.hidden = true;
+    if (pinResolver) {
+      pinResolver(val);
+      pinResolver = null;
+    }
+  }
+
+  function closePinModal() {
+    if (pinModal) pinModal.hidden = true;
+    if (pinResolver) {
+      pinResolver(null);
+      pinResolver = null;
+    }
+  }
 </script>
 </body>
 </html>

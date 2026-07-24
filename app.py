@@ -248,6 +248,30 @@ def delete_report(report_id: int, pin: str = Form("")):
     conn.close()
     return RedirectResponse("/", status_code=303)
 
+@app.post("/bulk-delete")
+def bulk_delete_report(pin: str = Form(""), ids: str = Form("")):
+    import shutil
+    if pin.strip() != supervisor_pin():
+        return RedirectResponse("/?err=pin", status_code=303)
+
+    id_list = [int(x) for x in ids.split(",") if x.strip().isdigit()]
+    if not id_list:
+        return RedirectResponse("/", status_code=303)
+
+    conn = get_conn()
+    placeholders = ",".join("?" * len(id_list))
+    rows = conn.execute(f"SELECT id, serial_number FROM reports WHERE id IN ({placeholders})", id_list).fetchall()
+    
+    for report in rows:
+        folder = evidence_dir(report["id"], report["serial_number"])
+        shutil.rmtree(folder, ignore_errors=True)
+        
+    conn.execute(f"DELETE FROM photos WHERE report_id IN ({placeholders})", id_list)
+    conn.execute(f"DELETE FROM reports WHERE id IN ({placeholders})", id_list)
+    conn.commit()
+    conn.close()
+    return RedirectResponse("/", status_code=303)
+
 
 @app.get("/report/{report_id}")
 def download_ba(report_id: int):
@@ -263,6 +287,57 @@ def download_ba(report_id: int):
         path, filename=ba_filename(report),
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     )
+
+
+@app.get("/bulk-report")
+def bulk_download_ba(ids: str = ""):
+    import zipfile
+    id_list = [int(x) for x in ids.split(",") if x.strip().isdigit()]
+    if not id_list:
+        return RedirectResponse("/", status_code=303)
+        
+    if len(id_list) == 1:
+        return download_ba(id_list[0])
+        
+    conn = get_conn()
+    placeholders = ",".join("?" * len(id_list))
+    rows = conn.execute(f"SELECT * FROM reports WHERE id IN ({placeholders})", id_list).fetchall()
+    conn.close()
+    
+    if not rows:
+        return RedirectResponse("/", status_code=303)
+        
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        for r in rows:
+            path = evidence_dir(r["id"], r["serial_number"]) / ba_filename(r)
+            if path.exists():
+                zf.write(path, arcname=ba_filename(r))
+                
+    zip_buffer.seek(0)
+    now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename=Berita_Acara_SDWAN_{now_str}.zip"}
+    )
+
+
+@app.get("/api/search")
+def api_search(q: str = ""):
+    if not q.strip():
+        return {"results": []}
+    conn = get_conn()
+    q_like = f"%{q.strip()}%"
+    rows = conn.execute(
+        """SELECT id, serial_number, type_device, status, tanggal, petugas
+           FROM reports
+           WHERE serial_number LIKE ? OR type_device LIKE ? OR petugas LIKE ?
+           ORDER BY id DESC LIMIT 8""",
+        (q_like, q_like, q_like)
+    ).fetchall()
+    conn.close()
+    return {"results": [dict(r) for r in rows]}
 
 
 @app.get("/print")
