@@ -1,6 +1,5 @@
 {
   "auto_backup_enabled": false,
-  "auto_backup_trigger": "on_submit",
-  "default_petugas": "",
-  "default_lokasi": ""
+  "auto_backup_interval": "daily",
+  "last_auto_backup_time": 0
 }

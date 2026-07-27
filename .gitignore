@@ -5,8 +5,8 @@ __pycache__/
 *.pyd
 
 # Local database & settings
-data/testing.db
-data/supervisor_pin.txt
+data 
+BACKUP
 
 # SSL certificates (sensitive)
 certs/key.pem
