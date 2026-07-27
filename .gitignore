@@ -4,9 +4,22 @@ __pycache__/
 *.pyo
 *.pyd
 
+# Environment & Dependencies
+.venv/
+env/
+venv/
+
+# Uploaded evidence & backups
+data/evidence/
+BACKUP/
+
+# Internal Agent & Rule documents
+AGENTS.md
+INCREMENTAL_DEVELOPMENT_RULES.md
+
 # Local database & settings
-data 
-BACKUP
+data/testing.db
+data/supervisor_pin.txt
 
 # SSL certificates (sensitive)
 certs/key.pem
