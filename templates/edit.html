@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}Edit Laporan #{{ r['id'] }} — {{ r['serial_number'] }}{% endblock %}
+{% block content %}
+
+<div class="detailhead" style="margin-bottom: 20px;">
+  <h1>Edit Laporan #{{ r['id'] }} — {{ r['serial_number'] }}
+    <span class="badge small" style="background:#eef2f8; color:#14315c; font-size:0.85rem; font-weight:600;">{{ vendor_spec['name'] }}</span>
+  </h1>
+  <div class="actions">
+    <a href="/device/{{ r['id'] }}" class="btn secondary"><i data-lucide="arrow-left" class="icon"></i> Batal / Kembali</a>
+  </div>
+</div>
+
+<form action="/device/{{ r['id'] }}/update" method="post" enctype="multipart/form-data" class="testform" id="editform">
+<input type="hidden" name="vendor" value="{{ vendor_spec['id'] }}">
+
+<fieldset>
+  <legend>I. Identitas Perangkat & Pengujian</legend>
+  <div class="grid2">
+    <label>Serial Number (S/N) *
+      <input name="serial_number" id="snfield" value="{{ r['serial_number'] }}" required autocomplete="off">
+    </label>
+    <label>Type Device
+      <input name="type_device" id="type_device" value="{{ r['type_device'] }}" autocomplete="off">
+    </label>
+    <label>Lokasi Pengujian
+      <input name="lokasi" id="lokasi" value="{{ r['lokasi'] }}">
+    </label>
+    <label>Tanggal Pengujian
+      <input name="tanggal" type="date" value="{{ r['tanggal'] }}">
+    </label>
+    <label>Petugas Penguji
+      <input name="petugas" id="petugas" value="{{ r['petugas'] }}">
+    </label>
+    <label>Mengetahui / Saksi 1 (DCS)
+      <input name="saksi" id="saksi" value="{{ r['saksi'] }}">
+    </label>
+    <label>Mengetahui / Saksi 2 (DID)
+      <input name="saksi2" id="saksi2" value="{{ r['saksi2'] }}">
+    </label>
+    <label>Mengetahui / Saksi 3 (ECS)
+      <input name="saksi3" id="saksi3" value="{{ r['saksi3'] }}">
+    </label>
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>II. Checklist Uji Fungsi ({{ vendor_spec['name'] }})</legend>
+  {% for item in vendor_spec['items'] %}
+  {% set i = loop.index %}
+  {% set current_val = r['hasil' ~ i] %}
+  <div class="checkitem">
+    <div class="checkinfo">
+      <strong>{{ i }}. {{ item.nama }}</strong>
+      <p class="prosedur">{{ item.prosedur }}</p>
+    </div>
+    <div class="checkinput">
+      <div class="okbuttons">
+        <input type="radio" id="ok{{ i }}" name="hasil{{ i }}" value="OK" {{ 'checked' if current_val == 'OK' else '' }} required>
+        <label class="okbtn" for="ok{{ i }}">OK</label>
+        <input type="radio" id="nok{{ i }}" name="hasil{{ i }}" value="NOT OK" {{ 'checked' if current_val == 'NOT OK' else '' }}>
+        <label class="nokbtn" for="nok{{ i }}">NOT OK</label>
+      </div>
+      <input name="ket{{ i }}" value="{{ r['ket' ~ i] }}" placeholder="Keterangan (opsional)">
+    </div>
+  </div>
+  {% endfor %}
+</fieldset>
+
+<fieldset>
+  <legend>III. Lampiran Dokumentasi Foto</legend>
+  {% for s in vendor_spec['photo_sections'] %}
+  <div class="photoitem" style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #eee;">
+    <strong>{{ loop.index }}. {{ s.judul }}</strong>
+    
+    <!-- Existing Photos List -->
+    <div class="existing-photos" style="display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0;">
+      {% for p in photos_list %}
+      {% if p['section'] == s['key'] %}
+      <div class="photo-thumb-card" id="card-photo-{{ p['id'] }}" style="position: relative; border: 1px solid #ccc; border-radius: 8px; padding: 8px; background: #fff; width: 160px; text-align: center; transition: all 0.2s;">
+        <div style="position: relative; height: 105px; overflow: hidden; border-radius: 6px; background: #eee;">
+          <img id="img-preview-{{ p['id'] }}" src="/evidence/{{ folder }}/{{ p['filename'] }}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
+          <span id="badge-replaced-{{ p['id'] }}" hidden style="position: absolute; top: 4px; right: 4px; background: #1e7d32; color: #fff; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Diganti</span>
+        </div>
+
+        <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+          <!-- Button Ganti Foto Direct -->
+          <label class="btn small" style="margin: 0; font-size: 0.78rem; cursor: pointer; background: #eef2f8; color: #14315c; border: 1px solid #c5d4ea; display: flex; align-items: center; justify-content: center; gap: 4px;">
+            <i data-lucide="refresh-cw" style="width: 12px; height: 12px;"></i> Ganti Foto Ini
+            <input type="file" name="replace_photo_{{ p['id'] }}" accept="image/*" capture="environment" style="display: none;" onchange="previewReplacePhoto(this, '{{ p['id'] }}')">
+          </label>
+
+          <!-- Checkbox Hapus -->
+          <label style="display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 0.75rem; color: #c62828; cursor: pointer; margin-top: 2px;">
+            <input type="checkbox" name="delete_photo_ids" value="{{ p['id'] }}" onchange="toggleDeletePhotoCard(this, '{{ p['id'] }}')">
+            <span>Hapus foto</span>
+          </label>
+        </div>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+
+    <!-- Upload New Photo -->
+    <div class="photoinputs">
+      <label style="font-size: 0.85rem; color: #555;">+ Tambah foto baru untuk bagian ini:</label>
+      <input type="file" name="photo_{{ s['key'] }}" accept="image/*" capture="environment" onchange="previewPhoto(this)">
+    </div>
+    <button type="button" class="btn small" style="margin-top: 6px;" onclick="addPhotoInput(this)">＋ Tambah foto lagi</button>
+  </div>
+  {% endfor %}
+</fieldset>
+
+<fieldset>
+  <legend>IV. Catatan Tambahan</legend>
+  <textarea name="catatan" rows="3">{{ r['catatan'] }}</textarea>
+</fieldset>
+
+<button type="submit" class="btn primary big" id="submitbtn"><i data-lucide="check-circle" class="icon"></i> Perbarui & Regenerasi Berita Acara</button>
+</form>
+
+<script>
+function previewReplacePhoto(input, photoId) {
+  if (input.files && input.files[0]) {
+    const img = document.getElementById('img-preview-' + photoId);
+    const badge = document.getElementById('badge-replaced-' + photoId);
+    const card = document.getElementById('card-photo-' + photoId);
+    if (img) img.src = URL.createObjectURL(input.files[0]);
+    if (badge) badge.hidden = false;
+    if (card) {
+      card.style.borderColor = '#1e7d32';
+      card.style.boxShadow = '0 0 0 2px rgba(30,125,50,0.2)';
+    }
+  }
+}
+
+function toggleDeletePhotoCard(checkbox, photoId) {
+  const card = document.getElementById('card-photo-' + photoId);
+  if (card) {
+    if (checkbox.checked) {
+      card.style.opacity = '0.45';
+      card.style.filter = 'grayscale(100%)';
+      card.style.borderColor = '#c62828';
+    } else {
+      card.style.opacity = '1';
+      card.style.filter = 'none';
+      card.style.borderColor = '#ccc';
+    }
+  }
+}
+
+function addPhotoInput(btn) {
+  const box = btn.parentElement.querySelector('.photoinputs');
+  const first = box.querySelector('input[type=file]');
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.name = first.name; inp.accept = 'image/*';
+  inp.setAttribute('capture', 'environment');
+  inp.onchange = () => previewPhoto(inp);
+  box.appendChild(inp);
+  inp.click();
+}
+
+function previewPhoto(input) {
+  let img = input.nextElementSibling;
+  if (!img || img.tagName !== 'IMG') {
+    img = document.createElement('img');
+    img.className = 'photopreview';
+    input.after(img);
+  }
+  if (input.files && input.files[0]) img.src = URL.createObjectURL(input.files[0]);
+}
+
+document.getElementById('editform').addEventListener('submit', () => {
+  const b = document.getElementById('submitbtn');
+  b.disabled = true; b.textContent = 'Memperbarui & meregenerasi BA…';
+});
+</script>
+<script src="/static/drafts.js"></script>
+{% endblock %}
