@@ -1,0 +1,6 @@
+{
+  "auto_backup_enabled": false,
+  "auto_backup_trigger": "on_submit",
+  "default_petugas": "",
+  "default_lokasi": ""
+}

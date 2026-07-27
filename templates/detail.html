@@ -14,7 +14,7 @@
     <a class="btn" href="/form?sn={{ r['serial_number'] }}"><i data-lucide="refresh-cw" class="icon"></i> Uji Ulang</a>
     <form method="post" action="/device/{{ r['id'] }}/delete" id="detail-delete-form">
       <input type="hidden" name="pin" id="detail-pin-input">
-      <button type="button" class="btn danger" onclick="confirmDeleteDetail('{{ r['serial_number'] }}')"><i data-lucide="trash-2" class="icon"></i> Hapus</button>
+      <button type="button" class="btn danger" onclick="confirmDeleteDetail('{{ r.serial_number }}')"><i data-lucide="trash-2" class="icon"></i> Hapus</button>
     </form>
   </div>
 </div>

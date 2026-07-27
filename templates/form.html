@@ -20,13 +20,13 @@
       <input name="type_device" id="type_device" value="Fortigate 40F" autocomplete="off">
     </label>
     <label>Lokasi Pengujian
-      <input name="lokasi" id="lokasi" value="Gudang DCS Telkom Kebon Sirih">
+      <input name="lokasi" id="lokasi" value="{{ default_lokasi or 'Gudang DCS Telkom Kebon Sirih' }}">
     </label>
     <label>Tanggal Pengujian
       <input name="tanggal" type="date" value="{{ today }}">
     </label>
     <label>Petugas Penguji
-      <input name="petugas" id="petugas">
+      <input name="petugas" id="petugas" value="{{ default_petugas }}">
     </label>
     <label>Mengetahui / Menyetujui 1
       <input name="saksi" id="saksi">

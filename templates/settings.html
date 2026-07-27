@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+{% block title %}Pengaturan — Mass Testing SD-WAN{% endblock %}
+
+{% block content %}
+<div class="settings-header">
+  <a class="btn-icon-circle" href="/" title="Kembali ke Beranda">
+    <i data-lucide="arrow-left" class="icon"></i>
+  </a>
+  <h2><i data-lucide="settings" class="icon" style="color: var(--primary);"></i> Pengaturan & Backup</h2>
+</div>
+
+<div class="settings-layout">
+  <!-- Left Column: Backup Controls & Presets -->
+  <div class="settings-col">
+    <!-- Card 1: Backup Data & Auto Backup -->
+    <div class="settings-card">
+      <div class="card-head">
+        <div class="card-icon-wrap primary"><i data-lucide="archive" class="icon"></i></div>
+        <div>
+          <h3>Backup Data & Penyimpanan</h3>
+          <p class="text-muted">Kelola backup manual dan otomatis ke folder <code>BACKUP/</code></p>
+        </div>
+      </div>
+      
+      <div class="setting-item">
+        <div class="setting-info">
+          <strong>Backup Manual Sekarang</strong>
+          <span>Buat file backup ZIP baru ke folder <code>BACKUP/</code> tanpa otomatis mengunduh.</span>
+        </div>
+        <button type="button" class="btn primary" id="btn-backup-now" onclick="doBackupNow()">
+          <i data-lucide="hard-drive-upload" class="icon"></i> Backup Sekarang
+        </button>
+      </div>
+
+      <hr class="divider">
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <strong>Otomatis Backup (Auto-Backup)</strong>
+          <span>Otomatis buat backup ZIP setiap kali selesai menyimpan data uji baru.</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="auto-backup-toggle" {% if settings.auto_backup_enabled %}checked{% endif %} onchange="saveGeneralSettings()">
+          <span class="slider round"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Card 2: Preset Defaults Form -->
+    <div class="settings-card">
+      <div class="card-head">
+        <div class="card-icon-wrap"><i data-lucide="sliders" class="icon"></i></div>
+        <div>
+          <h3>Preset Default Form Input</h3>
+          <p class="text-muted">Isi nilai otomatis untuk mempercepat penginputan form</p>
+        </div>
+      </div>
+
+      <div class="setting-form">
+        <div class="form-group">
+          <label for="default_petugas">Nama Petugas Default</label>
+          <input type="text" id="default_petugas" value="{{ settings.default_petugas }}" placeholder="Contoh: Arya Dwi Pangga" onchange="saveGeneralSettings()">
+        </div>
+        <div class="form-group">
+          <label for="default_lokasi">Lokasi Pengujian Default</label>
+          <input type="text" id="default_lokasi" value="{{ settings.default_lokasi }}" placeholder="Contoh: Gudang DCS Telkom Kebon Sirih" onchange="saveGeneralSettings()">
+        </div>
+        <small style="color: var(--text-muted);">Perubahan otomatis tersimpan saat Anda berpindah kolom.</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: PIN Security & Backup History List -->
+  <div class="settings-col">
+    <!-- Card 3: Keamanan PIN Supervisor -->
+    <div class="settings-card">
+      <div class="card-head">
+        <div class="card-icon-wrap danger"><i data-lucide="shield-check" class="icon"></i></div>
+        <div>
+          <h3>Keamanan (PIN Supervisor)</h3>
+          <p class="text-muted">Ganti PIN verifikasi untuk menghapus laporan data</p>
+        </div>
+      </div>
+
+      <form id="form-change-pin" onsubmit="handleChangePin(event)" class="setting-form">
+        <div class="form-group">
+          <label for="old_pin">PIN Lama Supervisor</label>
+          <input type="password" id="old_pin" placeholder="Masukkan PIN lama…" required autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="new_pin">PIN Baru Supervisor</label>
+          <input type="password" id="new_pin" placeholder="Masukkan PIN baru (min. 4 angka)…" required autocomplete="off">
+        </div>
+        <button type="submit" class="btn danger" style="width: 100%;">
+          <i data-lucide="key-round" class="icon"></i> Perbarui PIN Supervisor
+        </button>
+      </form>
+    </div>
+
+    <!-- Card 4: Riwayat Backup Tersimpan -->
+    <div class="settings-card">
+      <div class="card-head">
+        <div class="card-icon-wrap primary"><i data-lucide="history" class="icon"></i></div>
+        <div>
+          <h3>Riwayat Backup Tersimpan</h3>
+          <p class="text-muted">Daftar file backup ZIP di folder <code>BACKUP/</code></p>
+        </div>
+      </div>
+
+      <div class="backup-history-container" id="backup-history-list">
+        <div class="backup-loading">Memuat riwayat backup…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Notification -->
+<div id="toast" class="toast" hidden>
+  <i data-lucide="check-circle" class="icon toast-icon"></i>
+  <span id="toast-msg">Pesan notifikasi</span>
+</div>
+
+<script>
+  // Load Backup History
+  async function loadBackupHistory() {
+    const container = document.getElementById('backup-history-list');
+    try {
+      const res = await fetch('/api/backup-history');
+      const data = await res.json();
+      if (data.status === 'ok' && data.history.length > 0) {
+        container.innerHTML = data.history.map(item => `
+          <div class="backup-history-item">
+            <div class="backup-item-left">
+              <div class="backup-file-icon"><i data-lucide="file-archive" class="icon"></i></div>
+              <div class="backup-file-info">
+                <div class="backup-time-row">
+                  <span class="backup-time">${item.created_at}</span>
+                  <span class="backup-size-badge">${item.size_mb} MB</span>
+                </div>
+                <span class="backup-fname">${item.filename}</span>
+              </div>
+            </div>
+            <div class="backup-item-right">
+              <a href="/backup/download/${item.folder}/${item.filename}" class="btn small" title="Unduh File ZIP">
+                <i data-lucide="download" class="icon"></i> Unduh
+              </a>
+              <button type="button" class="btn danger small" onclick="deleteBackup('${item.folder}')" title="Hapus Backup">
+                <i data-lucide="trash-2" class="icon"></i>
+              </button>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        container.innerHTML = `<div class="backup-empty">Belum ada file backup tersimpan di folder BACKUP/</div>`;
+      }
+      lucide.createIcons();
+    } catch (e) {
+      container.innerHTML = `<div class="backup-error">Gagal memuat riwayat backup.</div>`;
+    }
+  }
+
+  // Backup Now Action
+  async function doBackupNow() {
+    const btn = document.getElementById('btn-backup-now');
+    btn.disabled = true;
+    btn.innerHTML = `<i data-lucide="loader-2" class="icon spin"></i> Mem-backup…`;
+    lucide.createIcons();
+
+    try {
+      const res = await fetch('/api/backup-now', { method: 'POST' });
+      const data = await res.json();
+      if (data.status === 'ok') {
+        showToast(data.message);
+        loadBackupHistory();
+      } else {
+        showToast('Gagal membuat backup!', true);
+      }
+    } catch (e) {
+      showToast('Terjadi kesalahan koneksi!', true);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<i data-lucide="hard-drive-upload" class="icon"></i> Backup Sekarang`;
+      lucide.createIcons();
+    }
+  }
+
+  // Delete Backup
+  async function deleteBackup(folder) {
+    if (!confirm(`Hapus folder backup ${folder}?`)) return;
+    try {
+      const res = await fetch(`/backup/delete/${folder}`, { method: 'POST' });
+      const data = await res.json();
+      if (data.status === 'ok') {
+        showToast(data.message);
+        loadBackupHistory();
+      }
+    } catch (e) {
+      showToast('Gagal menghapus backup.', true);
+    }
+  }
+
+  // Save General Settings
+  async function saveGeneralSettings() {
+    const autoBackup = document.getElementById('auto-backup-toggle').checked;
+    const petugas = document.getElementById('default_petugas').value.trim();
+    const lokasi = document.getElementById('default_lokasi').value.trim();
+
+    try {
+      const res = await fetch('/api/settings/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          auto_backup_enabled: autoBackup,
+          default_petugas: petugas,
+          default_lokasi: lokasi
+        })
+      });
+      const data = await res.json();
+      if (data.status === 'ok') {
+        showToast('Pengaturan tersimpan!');
+      }
+    } catch (e) {
+      showToast('Gagal menyimpan pengaturan.', true);
+    }
+  }
+
+  // Change PIN Supervisor
+  async function handleChangePin(e) {
+    e.preventDefault();
+    const oldPin = document.getElementById('old_pin').value;
+    const newPin = document.getElementById('new_pin').value;
+
+    try {
+      const res = await fetch('/api/change-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ old_pin: oldPin, new_pin: newPin })
+      });
+      const data = await res.json();
+      if (data.status === 'ok') {
+        showToast(data.message);
+        document.getElementById('form-change-pin').reset();
+      } else {
+        showToast(data.message, true);
+      }
+    } catch (e) {
+      showToast('Gagal mengubah PIN.', true);
+    }
+  }
+
+  // Toast Function
+  function showToast(msg, isError = false) {
+    const toast = document.getElementById('toast');
+    const toastMsg = document.getElementById('toast-msg');
+    toastMsg.textContent = msg;
+    toast.className = `toast ${isError ? 'error' : 'success'}`;
+    toast.hidden = false;
+    setTimeout(() => { toast.hidden = true; }, 3500);
+  }
+
+  // Load history on initial page render
+  document.addEventListener('DOMContentLoaded', () => {
+    loadBackupHistory();
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('msg') === 'backup_ok') {
+      showToast('Backup berhasil disimpan ke folder BACKUP!');
+    }
+  });
+</script>
+{% endblock %}

@@ -6,7 +6,10 @@ Scanner barcode IWare bekerja sebagai keyboard: scan S/N pada kolom pencarian.
 """
 
 import io
+import json
+import shutil
 import socket
+import zipfile
 from datetime import date, datetime
 from pathlib import Path
 
@@ -35,6 +38,59 @@ MAX_DIM = 1600  # foto diperkecil agar BA & storage hemat
 
 # PIN supervisor untuk hapus laporan — ganti dengan mengedit file data/supervisor_pin.txt
 PIN_FILE = DATA_DIR / "supervisor_pin.txt"
+SETTINGS_FILE = DATA_DIR / "settings.json"
+
+DEFAULT_SETTINGS = {
+    "auto_backup_enabled": False,
+    "auto_backup_trigger": "on_submit",
+    "default_petugas": "",
+    "default_lokasi": "",
+}
+
+
+def get_settings() -> dict:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    if not SETTINGS_FILE.exists():
+        SETTINGS_FILE.write_text(json.dumps(DEFAULT_SETTINGS, indent=2))
+        return DEFAULT_SETTINGS.copy()
+    try:
+        data = json.loads(SETTINGS_FILE.read_text())
+        merged = DEFAULT_SETTINGS.copy()
+        merged.update(data)
+        return merged
+    except Exception:
+        return DEFAULT_SETTINGS.copy()
+
+
+def save_settings_data(new_settings: dict) -> dict:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    current = get_settings()
+    current.update(new_settings)
+    SETTINGS_FILE.write_text(json.dumps(current, indent=2))
+    return current
+
+
+def create_backup_zip() -> tuple[Path, str, str]:
+    """Membuat backup ZIP di folder BACKUP/<timestamp>/ dan mengembalikan (zip_path, folder_name, zip_filename)."""
+    BACKUP_BASE_DIR = BASE_DIR / "BACKUP"
+    BACKUP_BASE_DIR.mkdir(parents=True, exist_ok=True)
+
+    now = datetime.now()
+    folder_name = now.strftime("%Y-%m-%d_%H-%M-%S")
+    target_dir = BACKUP_BASE_DIR / folder_name
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    zip_filename = f"backup_sdwan_{folder_name}.zip"
+    zip_path = target_dir / zip_filename
+
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        if DATA_DIR.exists():
+            for file_path in DATA_DIR.rglob("*"):
+                if file_path.is_file() and not file_path.name.endswith(".tmp"):
+                    arcname = file_path.relative_to(DATA_DIR)
+                    zf.write(file_path, arcname=arcname)
+
+    return zip_path, folder_name, zip_filename
 
 
 def supervisor_pin() -> str:
@@ -151,8 +207,14 @@ def scan(sn: str = ""):
 
 @app.get("/form")
 def form(request: Request, sn: str = ""):
+    st = get_settings()
     return templates.TemplateResponse(
-        request, "form.html", {"sn": sn.strip(), "today": date.today().isoformat()}
+        request, "form.html", {
+            "sn": sn.strip(),
+            "today": date.today().isoformat(),
+            "default_petugas": st.get("default_petugas", ""),
+            "default_lokasi": st.get("default_lokasi", ""),
+        }
     )
 
 
@@ -209,6 +271,9 @@ async def submit(request: Request):
         photos_paths = {k: [dest / f for f in v] for k, v in grouped.items()}
         generate_ba(dict(report), photos_paths, dest / ba_filename(report))
         conn.close()
+
+        if get_settings().get("auto_backup_enabled"):
+            create_backup_zip()
 
     return RedirectResponse(f"/device/{report_id}", status_code=303)
 
@@ -415,3 +480,98 @@ def export_excel():
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{fname}"'},
     )
+
+
+@app.get("/settings")
+def settings_page(request: Request):
+    st = get_settings()
+    return templates.TemplateResponse(request, "settings.html", {"settings": st})
+
+
+@app.post("/api/settings/save")
+async def save_settings_endpoint(request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    st = save_settings_data(data)
+    return {"status": "ok", "message": "Pengaturan berhasil disimpan.", "settings": st}
+
+
+@app.post("/api/change-pin")
+async def change_pin_endpoint(request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    old_pin = str(data.get("old_pin", "")).strip()
+    new_pin = str(data.get("new_pin", "")).strip()
+    if old_pin != supervisor_pin():
+        return {"status": "error", "message": "PIN lama salah!"}
+    if not new_pin or len(new_pin) < 4:
+        return {"status": "error", "message": "PIN baru minimal 4 angka/karakter!"}
+    PIN_FILE.write_text(f"{new_pin}\n")
+    return {"status": "ok", "message": "PIN Supervisor berhasil diperbarui!"}
+
+
+@app.post("/api/backup-now")
+def api_backup_now():
+    zip_path, folder_name, zip_filename = create_backup_zip()
+    return {
+        "status": "ok",
+        "message": f"Backup berhasil disimpan di folder BACKUP/{folder_name}/",
+        "folder": folder_name,
+        "file": zip_filename,
+    }
+
+
+@app.get("/api/backup-history")
+def api_backup_history():
+    BACKUP_BASE_DIR = BASE_DIR / "BACKUP"
+    history = []
+    if BACKUP_BASE_DIR.exists():
+        for item in sorted(BACKUP_BASE_DIR.iterdir(), reverse=True):
+            if item.is_dir():
+                zips = list(item.glob("*.zip"))
+                for z in zips:
+                    size_mb = round(z.stat().st_size / (1024 * 1024), 2)
+                    history.append({
+                        "folder": item.name,
+                        "filename": z.name,
+                        "size_mb": size_mb if size_mb > 0.01 else "< 0.01",
+                        "created_at": item.name.replace("_", " "),
+                    })
+    return {"status": "ok", "history": history}
+
+
+@app.get("/backup/download/{folder}/{filename}")
+def download_backup_file(folder: str, filename: str):
+    safe_folder = "".join(c for c in folder if c.isalnum() or c in "-_")
+    safe_file = "".join(c for c in filename if c.isalnum() or c in "-_.")
+    path = BASE_DIR / "BACKUP" / safe_folder / safe_file
+    if not path.exists() or not path.is_file():
+        return RedirectResponse("/settings", status_code=303)
+    return FileResponse(path=path, media_type="application/zip", filename=safe_file)
+
+
+@app.post("/backup/delete/{folder}")
+def delete_backup_folder(folder: str):
+    safe_folder = "".join(c for c in folder if c.isalnum() or c in "-_")
+    target = BASE_DIR / "BACKUP" / safe_folder
+    if target.exists() and target.is_dir():
+        shutil.rmtree(target, ignore_errors=True)
+    return {"status": "ok", "message": "Folder backup berhasil dihapus."}
+
+
+@app.get("/backup")
+def backup_data(download: bool = False):
+    zip_path, folder_name, zip_filename = create_backup_zip()
+    if download:
+        return FileResponse(
+            path=zip_path,
+            media_type="application/zip",
+            filename=zip_filename,
+        )
+    return RedirectResponse("/settings?msg=backup_ok", status_code=303)
+
+
