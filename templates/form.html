@@ -115,6 +115,14 @@ function previewPhoto(input) {
   }
   if (input.files && input.files[0]) img.src = URL.createObjectURL(input.files[0]);
 }
+document.addEventListener('DOMContentLoaded', () => {
+  const savedPetugas = localStorage.getItem('preset_petugas');
+  const savedLokasi = localStorage.getItem('preset_lokasi');
+  const pInput = document.getElementById('petugas');
+  const lInput = document.getElementById('lokasi');
+  if (savedPetugas && pInput) pInput.value = savedPetugas;
+  if (savedLokasi && lInput) lInput.value = savedLokasi;
+});
 document.getElementById('testform').addEventListener('submit', () => {
   const b = document.getElementById('submitbtn');
   b.disabled = true; b.textContent = 'Menyimpan & menyusun BA…';

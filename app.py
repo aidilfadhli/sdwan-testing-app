@@ -5,8 +5,10 @@ Operator membuka lewat browser HP/laptop di jaringan yang sama.
 Scanner barcode IWare bekerja sebagai keyboard: scan S/N pada kolom pencarian.
 """
 
+import asyncio
 import io
 import json
+import logging
 import shutil
 import socket
 import zipfile
@@ -42,10 +44,43 @@ SETTINGS_FILE = DATA_DIR / "settings.json"
 
 DEFAULT_SETTINGS = {
     "auto_backup_enabled": False,
-    "auto_backup_trigger": "on_submit",
-    "default_petugas": "",
-    "default_lokasi": "",
+    "auto_backup_interval": "daily",
+    "last_auto_backup_time": 0,
 }
+
+INTERVAL_SECONDS = {
+    "6h": 6 * 3600,
+    "12h": 12 * 3600,
+    "daily": 24 * 3600,
+    "weekly": 7 * 24 * 3600,
+    "monthly": 30 * 24 * 3600,
+}
+
+logger = logging.getLogger("uvicorn.error")
+
+async def scheduled_backup_loop():
+    """Background task to perform periodic auto-backups."""
+    while True:
+        try:
+            st = get_settings()
+            if st.get("auto_backup_enabled"):
+                interval_key = st.get("auto_backup_interval", "daily")
+                if interval_key in INTERVAL_SECONDS:
+                    target_sec = INTERVAL_SECONDS[interval_key]
+                    last_time = float(st.get("last_auto_backup_time", 0))
+                    now = datetime.now().timestamp()
+                    if now - last_time >= target_sec:
+                        create_backup_zip()
+                        save_settings_data({"last_auto_backup_time": now})
+                        logger.info(f"[Auto-Backup] Periodic backup created for interval: {interval_key}")
+        except Exception as e:
+            logger.error(f"[Auto-Backup] Error in scheduled loop: {e}")
+        
+        await asyncio.sleep(60)
+
+@app.on_event("startup")
+def start_backup_scheduler():
+    asyncio.create_task(scheduled_backup_loop())
 
 
 def get_settings() -> dict:
@@ -272,7 +307,8 @@ async def submit(request: Request):
         generate_ba(dict(report), photos_paths, dest / ba_filename(report))
         conn.close()
 
-        if get_settings().get("auto_backup_enabled"):
+        st_backup = get_settings()
+        if st_backup.get("auto_backup_enabled") and st_backup.get("auto_backup_interval") == "on_submit":
             create_backup_zip()
 
     return RedirectResponse(f"/device/{report_id}", status_code=303)
@@ -555,12 +591,21 @@ def download_backup_file(folder: str, filename: str):
 
 
 @app.post("/backup/delete/{folder}")
-def delete_backup_folder(folder: str):
+async def delete_backup_folder(folder: str, request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    pin = str(data.get("pin", "")).strip()
+    if pin != supervisor_pin():
+        return {"status": "error", "message": "PIN Supervisor salah!"}
+
     safe_folder = "".join(c for c in folder if c.isalnum() or c in "-_")
     target = BASE_DIR / "BACKUP" / safe_folder
     if target.exists() and target.is_dir():
         shutil.rmtree(target, ignore_errors=True)
-    return {"status": "ok", "message": "Folder backup berhasil dihapus."}
+        return {"status": "ok", "message": "Folder backup berhasil dihapus."}
+    return {"status": "error", "message": "Folder backup tidak ditemukan."}
 
 
 @app.get("/backup")

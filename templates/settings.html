@@ -18,14 +18,12 @@
         <div class="card-icon-wrap primary"><i data-lucide="archive" class="icon"></i></div>
         <div>
           <h3>Backup Data & Penyimpanan</h3>
-          <p class="text-muted">Kelola backup manual dan otomatis ke folder <code>BACKUP/</code></p>
         </div>
       </div>
       
       <div class="setting-item">
         <div class="setting-info">
           <strong>Backup Manual Sekarang</strong>
-          <span>Buat file backup ZIP baru ke folder <code>BACKUP/</code> tanpa otomatis mengunduh.</span>
         </div>
         <button type="button" class="btn primary" id="btn-backup-now" onclick="doBackupNow()">
           <i data-lucide="hard-drive-upload" class="icon"></i> Backup Sekarang
@@ -37,35 +35,71 @@
       <div class="setting-item">
         <div class="setting-info">
           <strong>Otomatis Backup (Auto-Backup)</strong>
-          <span>Otomatis buat backup ZIP setiap kali selesai menyimpan data uji baru.</span>
         </div>
         <label class="switch">
           <input type="checkbox" id="auto-backup-toggle" {% if settings.auto_backup_enabled %}checked{% endif %} onchange="saveGeneralSettings()">
           <span class="slider round"></span>
         </label>
       </div>
+
+      <div class="setting-form" id="auto-backup-options" {% if not settings.auto_backup_enabled %}style="display: none;"{% endif %}>
+        <label style="font-weight: 600; font-size: 0.9rem; margin-top: 10px; margin-bottom: 6px; display: block; color: var(--text-main);">
+          Frekuensi Backup Otomatis
+        </label>
+        <input type="hidden" id="auto_backup_interval" value="{{ settings.auto_backup_interval or 'daily' }}">
+        
+        <div class="backup-chips-grid">
+          <button type="button" class="chip-btn {% if settings.auto_backup_interval == 'on_submit' %}active{% endif %}" onclick="selectBackupInterval('on_submit', this)">
+            <i data-lucide="send" class="icon chip-icon"></i>
+            <span>Submit Form</span>
+          </button>
+          
+          <button type="button" class="chip-btn {% if settings.auto_backup_interval == '6h' %}active{% endif %}" onclick="selectBackupInterval('6h', this)">
+            <i data-lucide="clock-3" class="icon chip-icon"></i>
+            <span>Setiap 6 Jam</span>
+          </button>
+          
+          <button type="button" class="chip-btn {% if settings.auto_backup_interval == '12h' %}active{% endif %}" onclick="selectBackupInterval('12h', this)">
+            <i data-lucide="clock-6" class="icon chip-icon"></i>
+            <span>Setiap 12 Jam</span>
+          </button>
+          
+          <button type="button" class="chip-btn {% if settings.auto_backup_interval == 'daily' or not settings.auto_backup_interval %}active{% endif %}" onclick="selectBackupInterval('daily', this)">
+            <i data-lucide="calendar" class="icon chip-icon"></i>
+            <span>Harian</span>
+          </button>
+          
+          <button type="button" class="chip-btn {% if settings.auto_backup_interval == 'weekly' %}active{% endif %}" onclick="selectBackupInterval('weekly', this)">
+            <i data-lucide="calendar-range" class="icon chip-icon"></i>
+            <span>Mingguan</span>
+          </button>
+          
+          <button type="button" class="chip-btn {% if settings.auto_backup_interval == 'monthly' %}active{% endif %}" onclick="selectBackupInterval('monthly', this)">
+            <i data-lucide="calendar-days" class="icon chip-icon"></i>
+            <span>Bulanan</span>
+          </button>
+        </div>
+      </div>
     </div>
 
-    <!-- Card 2: Preset Defaults Form -->
+    <!-- Card 2: Preset Default Form Input -->
     <div class="settings-card">
       <div class="card-head">
         <div class="card-icon-wrap"><i data-lucide="sliders" class="icon"></i></div>
         <div>
           <h3>Preset Default Form Input</h3>
-          <p class="text-muted">Isi nilai otomatis untuk mempercepat penginputan form</p>
         </div>
       </div>
 
       <div class="setting-form">
         <div class="form-group">
           <label for="default_petugas">Nama Petugas Default</label>
-          <input type="text" id="default_petugas" value="{{ settings.default_petugas }}" placeholder="Contoh: Arya Dwi Pangga" onchange="saveGeneralSettings()">
+          <input type="text" id="default_petugas" placeholder="Masukkan nama petugas penguji…" oninput="saveLocalPresets()">
         </div>
         <div class="form-group">
           <label for="default_lokasi">Lokasi Pengujian Default</label>
-          <input type="text" id="default_lokasi" value="{{ settings.default_lokasi }}" placeholder="Contoh: Gudang DCS Telkom Kebon Sirih" onchange="saveGeneralSettings()">
+          <input type="text" id="default_lokasi" placeholder="Masukkan lokasi pengujian…" oninput="saveLocalPresets()">
         </div>
-        <small style="color: var(--text-muted);">Perubahan otomatis tersimpan saat Anda berpindah kolom.</small>
       </div>
     </div>
   </div>
@@ -78,7 +112,6 @@
         <div class="card-icon-wrap danger"><i data-lucide="shield-check" class="icon"></i></div>
         <div>
           <h3>Keamanan (PIN Supervisor)</h3>
-          <p class="text-muted">Ganti PIN verifikasi untuk menghapus laporan data</p>
         </div>
       </div>
 
@@ -103,7 +136,6 @@
         <div class="card-icon-wrap primary"><i data-lucide="history" class="icon"></i></div>
         <div>
           <h3>Riwayat Backup Tersimpan</h3>
-          <p class="text-muted">Daftar file backup ZIP di folder <code>BACKUP/</code></p>
         </div>
       </div>
 
@@ -184,26 +216,62 @@
     }
   }
 
-  // Delete Backup
+  // Delete Backup with Custom UI Confirmation + Supervisor PIN
   async function deleteBackup(folder) {
-    if (!confirm(`Hapus folder backup ${folder}?`)) return;
+    const ok = await requestConfirm(
+      'Hapus File Backup',
+      `Apakah Anda yakin ingin menghapus file backup "${folder}"? File yang dihapus tidak dapat dikembalikan.`
+    );
+    if (!ok) return;
+
+    const pin = await requestPin(`Masukkan PIN Supervisor untuk mengonfirmasi penghapusan backup "${folder}":`);
+    if (!pin) return;
+
     try {
-      const res = await fetch(`/backup/delete/${folder}`, { method: 'POST' });
+      const res = await fetch(`/backup/delete/${folder}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: pin })
+      });
       const data = await res.json();
       if (data.status === 'ok') {
         showToast(data.message);
         loadBackupHistory();
+      } else {
+        showToast(data.message, true);
       }
     } catch (e) {
       showToast('Gagal menghapus backup.', true);
     }
   }
 
-  // Save General Settings
-  async function saveGeneralSettings() {
-    const autoBackup = document.getElementById('auto-backup-toggle').checked;
+  // Save Local Presets in localStorage (per device)
+  function saveLocalPresets() {
     const petugas = document.getElementById('default_petugas').value.trim();
     const lokasi = document.getElementById('default_lokasi').value.trim();
+    if (petugas) localStorage.setItem('preset_petugas', petugas);
+    else localStorage.removeItem('preset_petugas');
+    if (lokasi) localStorage.setItem('preset_lokasi', lokasi);
+    else localStorage.removeItem('preset_lokasi');
+  }
+
+  function selectBackupInterval(val, btn) {
+    document.getElementById('auto_backup_interval').value = val;
+    document.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    saveGeneralSettings();
+  }
+
+  // Save General Settings (Server-side for Auto Backup)
+  async function saveGeneralSettings() {
+    const autoBackup = document.getElementById('auto-backup-toggle').checked;
+    const intervalInput = document.getElementById('auto_backup_interval');
+    const intervalVal = intervalInput ? intervalInput.value : 'daily';
+    const optionsDiv = document.getElementById('auto-backup-options');
+
+    if (optionsDiv) {
+      optionsDiv.style.display = autoBackup ? 'block' : 'none';
+    }
 
     try {
       const res = await fetch('/api/settings/save', {
@@ -211,13 +279,12 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           auto_backup_enabled: autoBackup,
-          default_petugas: petugas,
-          default_lokasi: lokasi
+          auto_backup_interval: intervalVal
         })
       });
       const data = await res.json();
       if (data.status === 'ok') {
-        showToast('Pengaturan tersimpan!');
+        showToast('Pengaturan Auto-Backup tersimpan!');
       }
     } catch (e) {
       showToast('Gagal menyimpan pengaturan.', true);
@@ -258,9 +325,14 @@
     setTimeout(() => { toast.hidden = true; }, 3500);
   }
 
-  // Load history on initial page render
+  // Load history & local presets on initial page render
   document.addEventListener('DOMContentLoaded', () => {
     loadBackupHistory();
+    const pInput = document.getElementById('default_petugas');
+    const lInput = document.getElementById('default_lokasi');
+    if (pInput) pInput.value = localStorage.getItem('preset_petugas') || '';
+    if (lInput) lInput.value = localStorage.getItem('preset_lokasi') || '';
+
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('msg') === 'backup_ok') {
       showToast('Backup berhasil disimpan ke folder BACKUP!');

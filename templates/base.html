@@ -61,6 +61,25 @@
     </form>
   </div>
 </div>
+
+<div id="confirm-modal" class="pin-modal" hidden>
+  <div class="pin-panel">
+    <div class="pin-head">
+      <div class="pin-icon-wrap" style="background: rgba(237, 28, 36, 0.1); color: var(--primary);">
+        <i data-lucide="help-circle" class="icon pin-icon"></i>
+      </div>
+      <strong id="confirm-title">Konfirmasi Hapus</strong>
+    </div>
+    <p id="confirm-message" style="margin-top: 10px; font-size: 0.95rem; color: var(--text-main); text-align: center; line-height: 1.4;"></p>
+    <div class="pin-actions" style="margin-top: 16px;">
+      <button type="button" class="btn" onclick="closeConfirmModal(false)">Batal</button>
+      <button type="button" class="btn danger" onclick="closeConfirmModal(true)">
+        <i data-lucide="check-circle" class="icon"></i> Ya, Lanjutkan
+      </button>
+    </div>
+  </div>
+</div>
+
 <nav class="mobile-bottom-nav">
   <a href="/" class="nav-item">
     <i data-lucide="home" class="icon"></i>
@@ -97,6 +116,30 @@
       localStorage.setItem('theme', newTheme);
       updateThemeIcon();
     });
+  }
+
+  /* Custom Confirm Modal Handler */
+  let confirmResolver = null;
+  const confirmModal = document.getElementById('confirm-modal');
+  const confirmTitle = document.getElementById('confirm-title');
+  const confirmMessage = document.getElementById('confirm-message');
+
+  function requestConfirm(title, msg) {
+    return new Promise((resolve) => {
+      if (confirmTitle) confirmTitle.textContent = title || 'Konfirmasi';
+      if (confirmMessage) confirmMessage.textContent = msg || 'Apakah Anda yakin ingin melanjutkan?';
+      if (confirmModal) confirmModal.hidden = false;
+      confirmResolver = resolve;
+      if (window.lucide) lucide.createIcons();
+    });
+  }
+
+  function closeConfirmModal(res) {
+    if (confirmModal) confirmModal.hidden = true;
+    if (confirmResolver) {
+      confirmResolver(res);
+      confirmResolver = null;
+    }
   }
 
   /* Custom PIN Modal Handler */
