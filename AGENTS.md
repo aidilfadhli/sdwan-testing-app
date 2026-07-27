@@ -1,6 +1,6 @@
 # Project Instructions & Agent Rules
 
-All AI agents working on this project must strictly adhere to the guidelines set out in [INCREMENTAL_DEVELOPMENT_RULES.md](file:///c:/Users/Raka/Documents/COOLYEAHH/KaPe/sdwan-testing-app/INCREMENTAL_DEVELOPMENT_RULES.md).
+All AI agents working on this project must strictly adhere to the guidelines set out in [INCREMENTAL_DEVELOPMENT_RULES.md](file:///c:\Users\Aidil\Documents\GitHub\sdwan-testing-app\INCREMENTAL_DEVELOPMENT_RULES.md).
 
 ## Key Principles:
 1. **Isolated Files**: Put new features in new files/modules.
