@@ -20,3 +20,15 @@ BACKUP/
 # OS metadata
 .DS_Store
 Thumbs.db
+
+# Internal Agent & Rule documents
+AGENTS.md
+INCREMENTAL_DEVELOPMENT_RULES.md
+
+# Local database & settings
+data/testing.db
+data/supervisor_pin.txt
+
+# SSL certificates (sensitive)
+certs/key.pem
+certs/cert.pem
