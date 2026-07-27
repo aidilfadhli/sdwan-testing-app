@@ -268,7 +268,7 @@ h2 { font-size: 1.25rem; font-weight: 600; color: var(--text-main); }
   .dashboard-hero {
     grid-template-columns: 1fr;
   }
-  .joinbox { display: none !important; }
+  .joinbox, .analytics-grid { display: none !important; }
 }
 
 @media (max-width: 576px) {
