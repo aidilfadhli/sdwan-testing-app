@@ -168,25 +168,75 @@ h2 { font-size: 1.25rem; font-weight: 600; color: var(--text-main); }
     grid-template-columns: repeat(2, 1fr);
   }
 }
+/* Stats Row (Liquid Glassmorphism: 4 cards Total, Pass, Fail, Pass Rate) */
 .stats-row .stat {
-  background: var(--card-bg);
-  border-radius: var(--radius);
-  padding: 16px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px) saturate(190%);
+  -webkit-backdrop-filter: blur(20px) saturate(190%);
+  border-radius: 20px;
+  padding: 20px 16px;
   text-align: center;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-color);
-  transition: var(--transition);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), inset 0 1px 1px 0 rgba(255, 255, 255, 1);
+  border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
-.stats-row .stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-.stats-row .stat .num { font-size: 2rem; font-weight: 800; line-height: 1.1; color: var(--text-main); }
-.stats-row .stat span:last-child { color: var(--text-muted); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-.stats-row .stat.pass .num { color: var(--success); }
-.stats-row .stat.fail .num { color: var(--danger); }
+
+[data-theme="dark"] .stats-row .stat {
+  background: rgba(30, 41, 59, 0.75);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+.stats-row .stat:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 18px 40px -10px rgba(0, 0, 0, 0.1), inset 0 1px 0 0 rgba(255, 255, 255, 1);
+}
+
+.stats-row .stat .num {
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.stats-row .stat span:last-child {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Font Warna Hitam - Hijau - Merah - Biru */
+.stats-row .stat.total .num,
+.stats-row .stat:nth-child(1) .num {
+  color: #0f172a;
+}
+
+.stats-row .stat.pass .num,
+.stats-row .stat:nth-child(2) .num {
+  color: #10b981;
+}
+
+.stats-row .stat.fail .num,
+.stats-row .stat:nth-child(3) .num {
+  color: #ed1c24;
+}
+
+.stats-row .stat.rate .num,
+.stats-row .stat:nth-child(4) .num {
+  color: #2563eb;
+}
+
+.stats-row .stat.total:hover { border-color: rgba(15, 23, 42, 0.3); }
+.stats-row .stat.pass:hover { border-color: rgba(16, 185, 129, 0.4); }
+.stats-row .stat.fail:hover { border-color: rgba(237, 28, 36, 0.4); }
+.stats-row .stat.rate:hover { border-color: rgba(37, 99, 235, 0.4); }
 
 /* Scan Box */
 .scanbox { background: var(--card-bg); border-radius: var(--radius);
@@ -1210,10 +1260,10 @@ input:checked + .slider:before { transform: translateX(22px); }
 
 /* Phase 4: Visual Dashboard Analytics & Filter Chips */
 .stat.rate {
-  border-left: 3px solid #3b82f6;
+  border-left: 1.5px solid rgba(255, 255, 255, 0.9) !important;
 }
 .stat.rate .num {
-  color: #3b82f6;
+  color: #2563eb;
 }
 
 .analytics-grid {
@@ -1546,4 +1596,312 @@ input:checked + .slider:before { transform: translateX(22px); }
   .analytics-page-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Floating Speed-Dial Toolbox Widget (Sesuai Desain Gambar 2) */
+.floating-toolbox-container {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 9998;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.fab-trigger-btn {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #ffffff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(237, 28, 36, 0.45);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.fab-trigger-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 12px 30px rgba(237, 28, 36, 0.6);
+}
+
+.fab-trigger-btn.active {
+  background: #1e293b;
+  transform: rotate(135deg);
+  box-shadow: 0 8px 24px rgba(30, 41, 59, 0.5);
+}
+
+.fab-trigger-btn svg,
+.fab-trigger-btn .fab-icon-main {
+  width: 24px !important;
+  height: 24px !important;
+  stroke: #ffffff !important;
+  fill: none !important;
+  stroke-width: 2px !important;
+  display: block !important;
+  margin: auto !important;
+  transition: transform 0.3s ease;
+}
+
+.speed-dial-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(15px) scale(0.92);
+  transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), visibility 0.25s;
+}
+
+.speed-dial-menu.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.speed-dial-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  text-decoration: none;
+  padding: 10px 20px 10px 16px;
+  border-radius: 30px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  white-space: nowrap;
+}
+
+.speed-dial-menu.active .speed-dial-item {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.speed-dial-menu.active .speed-dial-item:nth-child(1) { transition-delay: 0.05s; }
+.speed-dial-menu.active .speed-dial-item:nth-child(2) { transition-delay: 0.1s; }
+.speed-dial-menu.active .speed-dial-item:nth-child(3) { transition-delay: 0.15s; }
+
+.speed-dial-item:hover {
+  transform: translateX(-6px) scale(1.03) !important;
+  background: var(--card-bg);
+  border-color: var(--primary);
+  color: var(--primary);
+  box-shadow: 0 8px 25px rgba(237, 28, 36, 0.25);
+}
+
+.speed-dial-item svg,
+.speed-dial-item .icon {
+  width: 18px !important;
+  height: 18px !important;
+  stroke: var(--primary) !important;
+  fill: none !important;
+  stroke-width: 2px !important;
+  flex-shrink: 0;
+  display: inline-block !important;
+  transition: transform 0.2s ease;
+}
+
+.speed-dial-item:hover svg,
+.speed-dial-item:hover .icon {
+  transform: scale(1.2);
+}
+
+.btn-add-test {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .floating-toolbox-container,
+  .btn-add-test {
+    display: none !important;
+  }
+}
+
+/* Modal Editor Foto (Liquid Glass Window - Draw, Rotate, Reverse) */
+.photo-editor-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.photo-editor-modal[hidden] {
+  display: none !important;
+}
+
+.photo-editor-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.photo-editor-panel {
+  position: relative;
+  z-index: 1;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.92) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.photo-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.photo-editor-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text-main);
+}
+
+.photo-editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  background: var(--input-bg);
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+}
+
+.tool-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-main);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tool-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.tool-btn.active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
+.tool-btn.active svg,
+.tool-btn.active .icon {
+  stroke: #ffffff !important;
+}
+
+.color-picker-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+}
+
+.color-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.color-dot:hover { transform: scale(1.2); }
+.color-dot.active { border-color: #0f172a; transform: scale(1.15); }
+
+.photo-canvas-wrap {
+  flex: 1;
+  min-height: 280px;
+  max-height: 480px;
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 16px;
+  position: relative;
+}
+
+.photo-canvas-wrap canvas {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
+  touch-action: none;
+}
+
+.photo-editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border-color);
+  background: var(--card-bg);
 }

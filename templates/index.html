@@ -3,11 +3,14 @@
 <div class="dashboard-hero">
   <div class="hero-left">
     <div class="scanbox">
-      <form action="/scan" method="get">
+      <form action="/scan" method="get" id="scan-form" onsubmit="handlePlusSubmit(event)">
         <label for="sn">Mulai Uji Fungsi</label>
         <div class="scanrow">
           <input id="sn" name="sn" autofocus autocomplete="off"
                  placeholder="Scan S/N dengan barcode scanner / kamera...">
+          <button type="submit" class="btn primary btn-icon btn-add-test" title="Proses Uji S/N / Form Baru">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="icon"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
           <button type="button" class="btn primary btn-icon" title="Scan pakai kamera HP"
                   onclick="openScan(sn => location.href = '/scan?sn=' + encodeURIComponent(sn))">
             <i data-lucide="camera" class="icon"></i>
@@ -16,8 +19,21 @@
       </form>
     </div>
 
+<script>
+  function handlePlusSubmit(e) {
+    e.preventDefault();
+    const snInput = document.getElementById('sn');
+    const val = snInput ? snInput.value.trim() : '';
+    if (val) {
+      location.href = '/scan?sn=' + encodeURIComponent(val);
+    } else {
+      location.href = '/form';
+    }
+  }
+</script>
+
     <div class="stats-row">
-      <div class="stat"><span class="num">{{ stats['total'] or 0 }}</span><span>TOTAL DIUJI</span></div>
+      <div class="stat total"><span class="num">{{ stats['total'] or 0 }}</span><span>TOTAL DIUJI</span></div>
       <div class="stat pass"><span class="num">{{ stats['lulus'] or 0 }}</span><span>PASS</span></div>
       <div class="stat fail"><span class="num">{{ stats['gagal'] or 0 }}</span><span>FAIL</span></div>
       <div class="stat rate"><span class="num">{{ stats['pass_rate'] or 0 }}%</span><span>PASS RATE</span></div>

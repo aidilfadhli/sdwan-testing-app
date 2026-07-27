@@ -204,46 +204,97 @@ def server_url(request: Request) -> str:
     return f"{request.url.scheme}://{get_lan_ip()}:{port}"
 
 
-def add_watermark(img: Image.Image, text: str) -> Image.Image:
-    """Tambahkan pita semi-transparan dengan teks watermark di sudut kanan bawah foto."""
-    if not text or not text.strip():
+def add_watermark(img: Image.Image, watermark_data: str | list[str]) -> Image.Image:
+    """Tambahkan box timestamp multiline (SN, Date, Time, Location) di sudut foto."""
+    if not watermark_data:
         return img
     try:
         from PIL import ImageDraw, ImageFont
+        from datetime import datetime
+
         img_rgba = img.convert("RGBA")
         width, height = img_rgba.size
-        font_size = max(13, int(height * 0.032))
+
+        # Format multiline: SN, Date, Time, Location
+        lines = []
+        if isinstance(watermark_data, list):
+            lines = watermark_data
+        elif isinstance(watermark_data, str):
+            if "\n" in watermark_data:
+                lines = [l.strip() for l in watermark_data.split("\n") if l.strip()]
+            elif "|" in watermark_data:
+                parts = [p.strip() for p in watermark_data.split("|")]
+                sn_val = parts[0].replace("S/N:", "").replace("SN:", "").strip() if len(parts) >= 1 else ""
+                date_val = parts[1].strip() if len(parts) >= 2 else datetime.now().strftime("%Y-%m-%d")
+                loc_val = parts[2].strip() if len(parts) >= 3 else ""
+                lines = [
+                    f"SN: {sn_val}",
+                    f"Date: {date_val}",
+                    f"Time: {datetime.now().strftime('%H:%M:%S')}",
+                    f"Location: {loc_val}"
+                ]
+            else:
+                lines = [watermark_data]
+
+        lines = [l for l in lines if l and l.strip()]
+        if not lines:
+            return img
+
+        # Font size proportional to image height
+        font_size = max(14, int(height * 0.026))
         try:
             font = ImageFont.truetype("arial.ttf", font_size)
         except Exception:
             font = ImageFont.load_default()
-            
-        draw = ImageDraw.Draw(img_rgba)
-        bbox = draw.textbbox((0, 0), text, font=font)
-        text_w = bbox[2] - bbox[0]
-        text_h = bbox[3] - bbox[1]
-        
-        padding = max(6, int(font_size * 0.4))
-        margin = max(6, int(font_size * 0.4))
-        
-        x2 = width - margin
+
+        draw_dummy = ImageDraw.Draw(img_rgba)
+        line_heights = []
+        line_widths = []
+        for line in lines:
+            bbox = draw_dummy.textbbox((0, 0), line, font=font)
+            line_widths.append(bbox[2] - bbox[0])
+            line_heights.append(bbox[3] - bbox[1])
+
+        max_text_w = max(line_widths) if line_widths else 0
+        single_line_h = max(line_heights) if line_heights else font_size
+        line_spacing = max(4, int(font_size * 0.25))
+
+        total_text_h = sum(line_heights) + (line_spacing * (len(lines) - 1))
+
+        padding_x = max(14, int(font_size * 0.7))
+        padding_y = max(10, int(font_size * 0.5))
+        margin = max(14, int(font_size * 0.5))
+
+        box_w = max_text_w + (padding_x * 2)
+        box_h = total_text_h + (padding_y * 2)
+
+        # Position at bottom-left corner with margin
+        x1 = margin
         y2 = height - margin
-        x1 = max(0, x2 - text_w - padding * 2)
-        y1 = max(0, y2 - text_h - padding * 2)
-        
-        overlay = Image.new("RGBA", img_rgba.size, (255, 255, 255, 0))
+        y1 = max(0, y2 - box_h)
+        x2 = min(width - margin, x1 + box_w)
+
+        # Translucent dark overlay panel with red border accent
+        overlay = Image.new("RGBA", img_rgba.size, (0, 0, 0, 0))
         draw_ov = ImageDraw.Draw(overlay)
-        draw_ov.rectangle([x1, y1, x2, y2], fill=(15, 23, 42, 185))
-        
+        draw_ov.rectangle([x1, y1, x2, y2], fill=(15, 23, 42, 215), outline=(237, 28, 36, 255), width=2)
+
         img_rgba = Image.alpha_composite(img_rgba, overlay)
         draw_final = ImageDraw.Draw(img_rgba)
-        draw_final.text((x1 + padding, y1 + padding), text, fill=(255, 255, 255, 255), font=font)
+
+        # Draw stacked text lines top to bottom
+        current_y = y1 + padding_y
+        for line in lines:
+            draw_final.text((x1 + padding_x, current_y), line, fill=(255, 255, 255, 255), font=font)
+            current_y += single_line_h + line_spacing
+
         return img_rgba.convert("RGB")
-    except Exception:
+    except Exception as err:
+        print("Watermark error:", err)
         return img.convert("RGB")
 
 
-def save_photo(upload: UploadFile, dest_dir: Path, name_base: str, watermark_text: str = "") -> str | None:
+def save_photo(upload: UploadFile, dest_dir: Path, name_base: str, watermark_text: str | list[str] = "") -> str | None:
     raw = upload.file.read()
     if not raw:
         return None
@@ -546,9 +597,13 @@ async def submit(request: Request):
                 val("catatan"), status,
             ),
         )
-        report_id = cur.lastrowid
-        dest = evidence_dir(report_id, sn)
-        wm_text = f"S/N: {sn} | {val('tanggal') or date.today().isoformat()} | {val('lokasi')}"
+        cur_time = datetime.now().strftime("%H:%M:%S")
+        wm_text = [
+            f"SN: {sn}",
+            f"Date: {val('tanggal') or date.today().isoformat()}",
+            f"Time: {cur_time}",
+            f"Location: {val('lokasi') or ''}"
+        ]
 
         for section in vendor_spec["photo_sections"]:
             uploads = form_data.getlist(f"photo_{section['key']}")
@@ -674,7 +729,13 @@ async def update_report(request: Request, report_id: int):
         )
 
         dest = evidence_dir(report_id, sn)
-        wm_text = f"S/N: {sn} | {val('tanggal') or date.today().isoformat()} | {val('lokasi')}"
+        cur_time = datetime.now().strftime("%H:%M:%S")
+        wm_text = [
+            f"SN: {sn}",
+            f"Date: {val('tanggal') or date.today().isoformat()}",
+            f"Time: {cur_time}",
+            f"Location: {val('lokasi') or ''}"
+        ]
 
         # Handle Direct Photo Replacements (replace_photo_{id})
         photos_list = conn.execute("SELECT id, section, filename FROM photos WHERE report_id=?", (report_id,)).fetchall()
