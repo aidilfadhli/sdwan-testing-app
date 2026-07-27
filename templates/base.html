@@ -61,6 +61,25 @@
     </form>
   </div>
 </div>
+
+<div id="confirm-modal" class="pin-modal" hidden>
+  <div class="pin-panel">
+    <div class="pin-head">
+      <div class="pin-icon-wrap" style="background: rgba(237, 28, 36, 0.1); color: var(--primary);">
+        <i data-lucide="help-circle" class="icon pin-icon"></i>
+      </div>
+      <strong id="confirm-title">Konfirmasi Hapus</strong>
+    </div>
+    <p id="confirm-message" style="margin-top: 10px; font-size: 0.95rem; color: var(--text-main); text-align: center; line-height: 1.4;"></p>
+    <div class="pin-actions" style="margin-top: 16px;">
+      <button type="button" class="btn" onclick="closeConfirmModal(false)">Batal</button>
+      <button type="button" class="btn danger" onclick="closeConfirmModal(true)">
+        <i data-lucide="check-circle" class="icon"></i> Ya, Lanjutkan
+      </button>
+    </div>
+  </div>
+</div>
+
 <nav class="mobile-bottom-nav">
   <a href="/" class="nav-item">
     <i data-lucide="home" class="icon"></i>
@@ -76,6 +95,24 @@
     <span>Settings</span>
   </a>
 </nav>
+
+<div id="backup-toast" class="backup-toast-container" hidden>
+  <div class="backup-toast-card">
+    <div class="backup-toast-header">
+      <div class="backup-toast-icon">
+        <i data-lucide="archive" class="icon spin"></i>
+      </div>
+      <div class="backup-toast-title-wrap">
+        <strong id="backup-toast-title">Proses Backup Data...</strong>
+        <span id="backup-toast-status">Menyiapkan berkas backup...</span>
+      </div>
+      <span id="backup-toast-percent" class="backup-toast-percent">0%</span>
+    </div>
+    <div class="backup-progress-bar-bg">
+      <div id="backup-progress-bar" class="backup-progress-bar-fill" style="width: 0%;"></div>
+    </div>
+  </div>
+</div>
 
 <script src="/static/html5-qrcode.min.js"></script>
 <script src="/static/scanner.js"></script>
@@ -97,6 +134,96 @@
       localStorage.setItem('theme', newTheme);
       updateThemeIcon();
     });
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      const res = await fetch('/api/backup/status');
+      const data = await res.json();
+      if (data && data.status === 'running') {
+        startBackupProgressToast();
+      }
+    } catch (e) {}
+  });
+
+  /* Toast Progress Backup Handler */
+  let backupPollTimer = null;
+
+  function showBackupToast(title, statusText, percent) {
+    const toast = document.getElementById('backup-toast');
+    const titleEl = document.getElementById('backup-toast-title');
+    const statusEl = document.getElementById('backup-toast-status');
+    const percentEl = document.getElementById('backup-toast-percent');
+    const barEl = document.getElementById('backup-progress-bar');
+    if (!toast) return;
+
+    toast.hidden = false;
+    if (titleEl && title) titleEl.textContent = title;
+    if (statusEl && statusText) statusEl.textContent = statusText;
+    if (percentEl) percentEl.textContent = `${percent}%`;
+    if (barEl) barEl.style.width = `${percent}%`;
+  }
+
+  function hideBackupToast() {
+    const toast = document.getElementById('backup-toast');
+    if (toast) {
+      setTimeout(() => { toast.hidden = true; }, 1800);
+    }
+  }
+
+  function startBackupProgressToast() {
+    if (backupPollTimer) clearInterval(backupPollTimer);
+    showBackupToast('Proses Backup Data...', 'Menyiapkan berkas...', 5);
+
+    backupPollTimer = setInterval(async () => {
+      try {
+        const res = await fetch('/api/backup/status');
+        const data = await res.json();
+        
+        showBackupToast('Proses Backup Data...', data.message, data.progress);
+
+        if (data.status === 'completed' || data.progress >= 100) {
+          clearInterval(backupPollTimer);
+          backupPollTimer = null;
+          showBackupToast('Backup Selesai!', 'File backup berhasil disimpan!', 100);
+          if (typeof window.loadBackupHistory === 'function') {
+            window.loadBackupHistory();
+          }
+          hideBackupToast();
+        } else if (data.status === 'error') {
+          clearInterval(backupPollTimer);
+          backupPollTimer = null;
+          showBackupToast('Backup Gagal', data.message || 'Terjadi kesalahan saat backup', 0);
+          hideBackupToast();
+        }
+      } catch (e) {
+        // Retry
+      }
+    }, 150);
+  }
+
+  /* Custom Confirm Modal Handler */
+  let confirmResolver = null;
+  const confirmModal = document.getElementById('confirm-modal');
+  const confirmTitle = document.getElementById('confirm-title');
+  const confirmMessage = document.getElementById('confirm-message');
+
+  function requestConfirm(title, msg) {
+    return new Promise((resolve) => {
+      if (confirmTitle) confirmTitle.textContent = title || 'Konfirmasi';
+      if (confirmMessage) confirmMessage.textContent = msg || 'Apakah Anda yakin ingin melanjutkan?';
+      if (confirmModal) confirmModal.hidden = false;
+      confirmResolver = resolve;
+      if (window.lucide) lucide.createIcons();
+    });
+  }
+
+  function closeConfirmModal(res) {
+    if (confirmModal) confirmModal.hidden = true;
+    if (confirmResolver) {
+      confirmResolver(res);
+      confirmResolver = null;
+    }
   }
 
   /* Custom PIN Modal Handler */

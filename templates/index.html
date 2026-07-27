@@ -1,39 +1,46 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="top-actions">
-  <div class="scanbox">
-    <form action="/scan" method="get">
-      <label for="sn">Mulai Uji Fungsi</label>
-      <div class="scanrow">
-        <input id="sn" name="sn" autofocus autocomplete="off"
-               placeholder="Scan S/N dengan barcode scanner / kamera...">
-        <button type="button" class="btn primary btn-icon" title="Scan pakai kamera HP"
-                onclick="openScan(sn => location.href = '/scan?sn=' + encodeURIComponent(sn))">
-          <i data-lucide="camera" class="icon"></i>
-        </button>
-      </div>
-    </form>
+<div class="dashboard-hero">
+  <div class="hero-left">
+    <div class="scanbox">
+      <form action="/scan" method="get">
+        <label for="sn">Mulai Uji Fungsi</label>
+        <div class="scanrow">
+          <input id="sn" name="sn" autofocus autocomplete="off"
+                 placeholder="Scan S/N dengan barcode scanner / kamera...">
+          <button type="button" class="btn primary btn-icon" title="Scan pakai kamera HP"
+                  onclick="openScan(sn => location.href = '/scan?sn=' + encodeURIComponent(sn))">
+            <i data-lucide="camera" class="icon"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat"><span class="num">{{ stats['total'] or 0 }}</span><span>TOTAL DIUJI</span></div>
+      <div class="stat pass"><span class="num">{{ stats['lulus'] or 0 }}</span><span>PASS</span></div>
+      <div class="stat fail"><span class="num">{{ stats['gagal'] or 0 }}</span><span>FAIL</span></div>
+    </div>
   </div>
 
   <div class="joinbox">
-    <img src="/qr" alt="QR Akses">
-    <div class="join-info">
-      <strong>Akses via HP</strong>
-      <span class="joinurl">{{ server_url }}</span>
+    <div class="join-head">
+      <i data-lucide="smartphone" class="icon" style="color: var(--primary);"></i>
+      <span>Akses via HP / Mobile</span>
+    </div>
+    <div class="join-body">
+      <img src="/qr" alt="QR Akses SD-WAN">
+      <div class="join-info">
+        <span class="joinurl">{{ server_url }}</span>
+      </div>
     </div>
   </div>
-</section>
-
-<section class="stats">
-  <div class="stat"><span class="num">{{ stats['total'] or 0 }}</span><span>Total Diuji</span></div>
-  <div class="stat pass"><span class="num">{{ stats['lulus'] or 0 }}</span><span>PASS</span></div>
-  <div class="stat fail"><span class="num">{{ stats['gagal'] or 0 }}</span><span>FAIL</span></div>
-</section>
+</div>
 
 <section id="table-section">
   <div class="listhead">
     <h2>Riwayat Pengujian {% if q %}<small>— hasil cari "{{ q }}"</small>{% endif %}</h2>
-    <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+    <div class="listhead-actions">
       <form action="/" method="get" class="search">
         <div class="search-container">
           <input name="q" id="search-input" value="{{ q }}" placeholder="Cari S/N…" autocomplete="off">
