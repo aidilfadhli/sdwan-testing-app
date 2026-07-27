@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Analytics — Mass Testing SD-WAN{% endblock %}
+
+{% block content %}
+<div class="analytics-header">
+  <div class="analytics-title-group">
+    <h2>
+      <i data-lucide="bar-chart-3" class="icon" style="color: var(--primary);"></i>
+      Dashboard Analytics & Visualisasi
+    </h2>
+    <p class="subtitle">Statistik real-time rasio kelulusan, throughput harian, dan analisis kegagalan pengujian SD-WAN Edge.</p>
+  </div>
+</div>
+
+<!-- Hero Stats Summary -->
+<div class="stats-row" style="margin-bottom: 24px;">
+  <div class="stat"><span class="num">{{ stats['total'] or 0 }}</span><span>TOTAL DIUJI</span></div>
+  <div class="stat pass"><span class="num">{{ stats['lulus'] or 0 }}</span><span>PASS</span></div>
+  <div class="stat fail"><span class="num">{{ stats['gagal'] or 0 }}</span><span>FAIL</span></div>
+  <div class="stat rate"><span class="num">{{ stats['pass_rate'] or 0 }}%</span><span>PASS RATE</span></div>
+</div>
+
+<!-- Filter Dropdowns Bar -->
+<div class="filter-toolbar">
+  <div class="filter-toolbar-header">
+    <i data-lucide="sliders-horizontal" class="icon" style="color: var(--primary);"></i>
+    <span>Filter Analytics</span>
+  </div>
+
+  <div class="filter-controls">
+    <!-- Status Filter -->
+    <div class="filter-item">
+      <label for="filter-status-select" class="filter-label">Status</label>
+      <select id="filter-status-select" class="filter-select {{ 'has-value' if filter_status and filter_status != 'all' else '' }}" data-filter="status">
+        <option value="all" {{ 'selected' if filter_status == 'all' or not filter_status else '' }}>Semua Status</option>
+        <option value="PASS" {{ 'selected' if filter_status == 'PASS' else '' }}>PASS</option>
+        <option value="FAIL" {{ 'selected' if filter_status == 'FAIL' else '' }}>FAIL</option>
+      </select>
+    </div>
+
+    <!-- Vendor Filter -->
+    <div class="filter-item">
+      <label for="filter-vendor-select" class="filter-label">Vendor</label>
+      <select id="filter-vendor-select" class="filter-select {{ 'has-value' if filter_vendor and filter_vendor != 'all' else '' }}" data-filter="vendor">
+        <option value="all" {{ 'selected' if filter_vendor == 'all' or not filter_vendor else '' }}>Semua Vendor</option>
+        <option value="fortinet" {{ 'selected' if filter_vendor == 'fortinet' else '' }}>Fortinet</option>
+        <option value="cisco" {{ 'selected' if filter_vendor == 'cisco' else '' }}>Cisco</option>
+        <option value="velocloud" {{ 'selected' if filter_vendor == 'velocloud' else '' }}>VMware VeloCloud</option>
+      </select>
+    </div>
+
+    <!-- Tanggal Filter -->
+    <div class="filter-item">
+      <label for="filter-date-select" class="filter-label">Tanggal</label>
+      <select id="filter-date-select" class="filter-select {{ 'has-value' if filter_date_range and filter_date_range != 'all' else '' }}" data-filter="date_range">
+        <option value="all" {{ 'selected' if filter_date_range == 'all' or not filter_date_range else '' }}>Semua Tanggal</option>
+        <option value="today" {{ 'selected' if filter_date_range == 'today' else '' }}>Hari Ini</option>
+        <option value="7days" {{ 'selected' if filter_date_range == '7days' else '' }}>7 Hari Terakhir</option>
+        <option value="30days" {{ 'selected' if filter_date_range == '30days' else '' }}>30 Hari Terakhir</option>
+      </select>
+    </div>
+
+    <!-- Model Filter -->
+    <div class="filter-item">
+      <label for="filter-model-select" class="filter-label">Model</label>
+      <select id="filter-model-select" class="filter-select {{ 'has-value' if filter_model and filter_model != 'all' else '' }}" data-filter="model">
+        <option value="all" {{ 'selected' if filter_model == 'all' or not filter_model else '' }}>Semua Model</option>
+        {% if analytics and analytics['available_models'] %}
+        {% for m in analytics['available_models'] %}
+        <option value="{{ m }}" {{ 'selected' if filter_model == m else '' }}>{{ m }}</option>
+        {% endfor %}
+        {% endif %}
+      </select>
+    </div>
+
+    {% if (filter_status and filter_status != 'all') or (filter_vendor and filter_vendor != 'all') or (filter_date_range and filter_date_range != 'all') or (filter_model and filter_model != 'all') %}
+    <div class="filter-item filter-reset-wrap">
+      <a href="/analytics" class="btn danger small filter-reset-btn" title="Reset semua filter">
+        <i data-lucide="rotate-ccw" class="icon small"></i> Reset
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Visual Analytics Grid -->
+<section class="analytics-page-grid">
+  <div class="analytics-card">
+    <div class="card-head">
+      <i data-lucide="pie-chart" class="icon"></i>
+      <span>Rasio Kelulusan (PASS / FAIL)</span>
+    </div>
+    <div class="card-body chart-container">
+      <canvas id="chart-pass-fail"></canvas>
+    </div>
+  </div>
+
+  <div class="analytics-card">
+    <div class="card-head">
+      <i data-lucide="bar-chart-2" class="icon"></i>
+      <span>Throughput Pengujian Harian (14 Hari)</span>
+    </div>
+    <div class="card-body chart-container">
+      <canvas id="chart-throughput"></canvas>
+    </div>
+  </div>
+
+  <div class="analytics-card">
+    <div class="card-head">
+      <i data-lucide="alert-triangle" class="icon" style="color: #ef4444;"></i>
+      <span>Top Item Uji Sering Gagal</span>
+    </div>
+    <div class="card-body" id="top-failed-container">
+      <!-- Populated dynamically by analytics.js -->
+    </div>
+  </div>
+
+  <div class="analytics-card">
+    <div class="card-head">
+      <i data-lucide="layers" class="icon"></i>
+      <span>Distribusi Pengujian per Vendor</span>
+    </div>
+    <div class="card-body">
+      <ul class="failed-list">
+        {% if analytics and analytics['vendor_distribution'] %}
+        {% for item in analytics['vendor_distribution'] %}
+        <li class="failed-item">
+          <div class="failed-info">
+            <span class="failed-name">{{ item['vendor'] }}</span>
+            <span class="failed-count" style="color: var(--primary);">{{ item['count'] }} Perangkat</span>
+          </div>
+          <div class="failed-bar-bg">
+            {% set total_devs = stats['total'] or 1 %}
+            {% set v_pct = (item['count'] / total_devs * 100) | round | int %}
+            <div class="failed-bar-fill" style="width: {{ v_pct }}%; background: var(--primary);"></div>
+          </div>
+        </li>
+        {% endfor %}
+        {% else %}
+        <div class="empty-failed">
+          <i data-lucide="info" style="color: var(--text-muted); width: 28px; height: 28px;"></i>
+          <p>Belum ada data vendor.</p>
+        </div>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</section>
+
+<script id="analytics-json-data" type="application/json">
+  {{ analytics | tojson }}
+</script>
+<script src="/static/chart.min.js"></script>
+<script src="/static/analytics.js"></script>
+{% endblock %}

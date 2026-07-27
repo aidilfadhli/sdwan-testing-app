@@ -13,7 +13,7 @@ import shutil
 import socket
 import threading
 import zipfile
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from fastapi import FastAPI, Form, Request
@@ -26,6 +26,7 @@ from PIL import Image
 from checklist import CHECKLIST_ITEMS, PHOTO_SECTIONS, VENDOR_REGISTRY, get_vendor_spec, detect_vendor_by_sn
 from db import DATA_DIR, EVIDENCE_DIR, evidence_dir, get_conn
 from report import generate_ba
+from analytics import get_analytics_data
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -303,26 +304,134 @@ def ba_filename(report) -> str:
     return f"BA_Uji_Fungsi_{safe_sn}.docx"
 
 
-@app.get("/")
-def index(request: Request, q: str = ""):
-    conn = get_conn()
-    if q:
-        rows = conn.execute(
-            "SELECT * FROM reports WHERE serial_number LIKE ? ORDER BY id DESC",
-            (f"%{q.strip()}%",),
-        ).fetchall()
-    else:
-        rows = conn.execute("SELECT * FROM reports ORDER BY id DESC LIMIT 200").fetchall()
-    stats = conn.execute(
-        "SELECT COUNT(*) AS total,"
-        " SUM(CASE WHEN status='PASS' THEN 1 ELSE 0 END) AS lulus,"
-        " SUM(CASE WHEN status='FAIL' THEN 1 ELSE 0 END) AS gagal"
-        " FROM reports"
-    ).fetchone()
-    conn.close()
+@app.get("/api/stats")
+def get_stats_api(
+    vendor: str = "all",
+    status: str = "all",
+    date_range: str = "all",
+    model: str = "all",
+):
+    """API Analytics endpoint penyedia data statistik tren & persentase kegagalan."""
+    return get_analytics_data(vendor=vendor, status=status, date_range=date_range, model=model)
+
+
+@app.get("/analytics")
+def analytics_page(
+    request: Request,
+    vendor: str = "all",
+    status: str = "all",
+    date_range: str = "all",
+    model: str = "all",
+):
+    """Halaman Visual Dashboard Analytics dedicated."""
+    analytics = get_analytics_data(vendor=vendor, status=status, date_range=date_range, model=model)
     return templates.TemplateResponse(
-        request, "index.html",
-        {"rows": rows, "stats": stats, "q": q, "server_url": server_url(request)},
+        request,
+        "analytics.html",
+        {
+            "analytics": analytics,
+            "stats": {
+                "total": analytics["summary"]["total"],
+                "lulus": analytics["summary"]["pass"],
+                "gagal": analytics["summary"]["fail"],
+                "pass_rate": analytics["summary"]["pass_rate"],
+            },
+            "filter_vendor": vendor,
+            "filter_status": status,
+            "filter_date_range": date_range,
+            "filter_model": model,
+            "server_url": server_url(request),
+        },
+    )
+
+
+@app.get("/")
+def index(
+    request: Request,
+    q: str = "",
+    vendor: str = "all",
+    status: str = "all",
+    date_range: str = "all",
+    model: str = "all",
+    limit: int = 10,
+    page: int = 1,
+):
+    conn = get_conn()
+    where_clauses = []
+    params = []
+
+    if q and q.strip():
+        where_clauses.append("serial_number LIKE ?")
+        params.append(f"%{q.strip()}%")
+
+    if vendor and vendor.strip().lower() != "all":
+        where_clauses.append("LOWER(vendor) = ?")
+        params.append(vendor.strip().lower())
+
+    if status and status.strip().upper() != "ALL":
+        where_clauses.append("UPPER(status) = ?")
+        params.append(status.strip().upper())
+
+    if model and model.strip() and model.strip().lower() != "all":
+        where_clauses.append("type_device = ?")
+        params.append(model.strip())
+
+    today = date.today()
+    if date_range == "today":
+        where_clauses.append("DATE(created_at) = DATE(?)")
+        params.append(today.strftime("%Y-%m-%d"))
+    elif date_range == "7days":
+        start_d = today - timedelta(days=7)
+        where_clauses.append("DATE(created_at) >= DATE(?)")
+        params.append(start_d.strftime("%Y-%m-%d"))
+    elif date_range == "30days":
+        start_d = today - timedelta(days=30)
+        where_clauses.append("DATE(created_at) >= DATE(?)")
+        params.append(start_d.strftime("%Y-%m-%d"))
+
+    where_sql = (" WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+    
+    # Hitung total baris yang cocok dengan filter untuk navigasi pagination
+    count_query = f"SELECT COUNT(*) FROM reports{where_sql}"
+    total_filtered_rows = conn.execute(count_query, params).fetchone()[0] or 0
+
+    if limit not in (10, 25, 50, 100, 200):
+        limit = 10
+
+    max_pages = max(1, (total_filtered_rows + limit - 1) // limit)
+    page = max(1, min(page, max_pages))
+    offset = (page - 1) * limit
+
+    query = f"SELECT * FROM reports{where_sql} ORDER BY id DESC LIMIT ? OFFSET ?"
+    query_params = params + [limit, offset]
+    rows = conn.execute(query, query_params).fetchall()
+    conn.close()
+
+    analytics = get_analytics_data(vendor=vendor, status=status, date_range=date_range, model=model)
+
+    return templates.TemplateResponse(
+        request,
+        "index.html",
+        {
+            "rows": rows,
+            "stats": {
+                "total": analytics["summary"]["total"],
+                "lulus": analytics["summary"]["pass"],
+                "gagal": analytics["summary"]["fail"],
+                "pass_rate": analytics["summary"]["pass_rate"],
+            },
+            "analytics": analytics,
+            "q": q,
+            "filter_vendor": vendor,
+            "filter_status": status,
+            "filter_date_range": date_range,
+            "filter_model": model,
+            "filter_limit": limit,
+            "current_page": page,
+            "total_pages": max_pages,
+            "total_filtered_rows": total_filtered_rows,
+            "server_url": server_url(request),
+        },
     )
 
 

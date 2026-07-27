@@ -1,17 +1,25 @@
-# Python cache files
+# Python cache & virtual environments
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
-# Environment & Dependencies
 .venv/
-env/
 venv/
+env/
 
-# Uploaded evidence & backups
-data/evidence/
+# Local data & database
+data/
+
+# SSL certificates
+certs/
+
+# Local backups
 BACKUP/
+*.zip
+
+# OS metadata
+.DS_Store
+Thumbs.db
 
 # Internal Agent & Rule documents
 AGENTS.md
@@ -24,4 +32,3 @@ data/supervisor_pin.txt
 # SSL certificates (sensitive)
 certs/key.pem
 certs/cert.pem
-AGENTS.md
