@@ -194,15 +194,20 @@
   // Backup Now Action
   async function doBackupNow() {
     const btn = document.getElementById('btn-backup-now');
-    btn.disabled = true;
-    btn.innerHTML = `<i data-lucide="loader-2" class="icon spin"></i> Mem-backup…`;
-    lucide.createIcons();
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<i data-lucide="loader-2" class="icon spin"></i> Mem-backup…`;
+      if (window.lucide) lucide.createIcons();
+    }
+
+    if (window.startBackupProgressToast) {
+      startBackupProgressToast();
+    }
 
     try {
       const res = await fetch('/api/backup-now', { method: 'POST' });
       const data = await res.json();
       if (data.status === 'ok') {
-        showToast(data.message);
         loadBackupHistory();
       } else {
         showToast('Gagal membuat backup!', true);
@@ -210,9 +215,11 @@
     } catch (e) {
       showToast('Terjadi kesalahan koneksi!', true);
     } finally {
-      btn.disabled = false;
-      btn.innerHTML = `<i data-lucide="hard-drive-upload" class="icon"></i> Backup Sekarang`;
-      lucide.createIcons();
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="hard-drive-upload" class="icon"></i> Backup Sekarang`;
+        if (window.lucide) lucide.createIcons();
+      }
     }
   }
 

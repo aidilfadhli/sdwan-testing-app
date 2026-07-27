@@ -96,6 +96,24 @@
   </a>
 </nav>
 
+<div id="backup-toast" class="backup-toast-container" hidden>
+  <div class="backup-toast-card">
+    <div class="backup-toast-header">
+      <div class="backup-toast-icon">
+        <i data-lucide="archive" class="icon spin"></i>
+      </div>
+      <div class="backup-toast-title-wrap">
+        <strong id="backup-toast-title">Proses Backup Data...</strong>
+        <span id="backup-toast-status">Menyiapkan berkas backup...</span>
+      </div>
+      <span id="backup-toast-percent" class="backup-toast-percent">0%</span>
+    </div>
+    <div class="backup-progress-bar-bg">
+      <div id="backup-progress-bar" class="backup-progress-bar-fill" style="width: 0%;"></div>
+    </div>
+  </div>
+</div>
+
 <script src="/static/html5-qrcode.min.js"></script>
 <script src="/static/scanner.js"></script>
 <script>
@@ -116,6 +134,72 @@
       localStorage.setItem('theme', newTheme);
       updateThemeIcon();
     });
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      const res = await fetch('/api/backup/status');
+      const data = await res.json();
+      if (data && data.status === 'running') {
+        startBackupProgressToast();
+      }
+    } catch (e) {}
+  });
+
+  /* Toast Progress Backup Handler */
+  let backupPollTimer = null;
+
+  function showBackupToast(title, statusText, percent) {
+    const toast = document.getElementById('backup-toast');
+    const titleEl = document.getElementById('backup-toast-title');
+    const statusEl = document.getElementById('backup-toast-status');
+    const percentEl = document.getElementById('backup-toast-percent');
+    const barEl = document.getElementById('backup-progress-bar');
+    if (!toast) return;
+
+    toast.hidden = false;
+    if (titleEl && title) titleEl.textContent = title;
+    if (statusEl && statusText) statusEl.textContent = statusText;
+    if (percentEl) percentEl.textContent = `${percent}%`;
+    if (barEl) barEl.style.width = `${percent}%`;
+  }
+
+  function hideBackupToast() {
+    const toast = document.getElementById('backup-toast');
+    if (toast) {
+      setTimeout(() => { toast.hidden = true; }, 1800);
+    }
+  }
+
+  function startBackupProgressToast() {
+    if (backupPollTimer) clearInterval(backupPollTimer);
+    showBackupToast('Proses Backup Data...', 'Menyiapkan berkas...', 5);
+
+    backupPollTimer = setInterval(async () => {
+      try {
+        const res = await fetch('/api/backup/status');
+        const data = await res.json();
+        
+        showBackupToast('Proses Backup Data...', data.message, data.progress);
+
+        if (data.status === 'completed' || data.progress >= 100) {
+          clearInterval(backupPollTimer);
+          backupPollTimer = null;
+          showBackupToast('Backup Selesai!', 'File backup berhasil disimpan!', 100);
+          if (typeof window.loadBackupHistory === 'function') {
+            window.loadBackupHistory();
+          }
+          hideBackupToast();
+        } else if (data.status === 'error') {
+          clearInterval(backupPollTimer);
+          backupPollTimer = null;
+          showBackupToast('Backup Gagal', data.message || 'Terjadi kesalahan saat backup', 0);
+          hideBackupToast();
+        }
+      } catch (e) {
+        // Retry
+      }
+    }, 150);
   }
 
   /* Custom Confirm Modal Handler */
