@@ -1,0 +1,13 @@
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local database & settings
+data/testing.db
+data/supervisor_pin.txt
+
+# SSL certificates (sensitive)
+certs/key.pem
+certs/cert.pem
