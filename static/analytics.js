@@ -161,12 +161,11 @@ function renderTopFailedItems(failedItems) {
 }
 
 function bindFilterChips() {
-  const filterChips = document.querySelectorAll('.chip[data-filter]');
-  filterChips.forEach(chip => {
-    chip.addEventListener('click', (e) => {
-      e.preventDefault();
-      const filterKey = chip.getAttribute('data-filter');
-      const filterVal = chip.getAttribute('data-value');
+  const filterSelects = document.querySelectorAll('.filter-select[data-filter]');
+  filterSelects.forEach(select => {
+    select.addEventListener('change', () => {
+      const filterKey = select.getAttribute('data-filter');
+      const filterVal = select.value;
 
       const url = new URL(window.location.href);
       if (filterVal === 'all') {
@@ -174,21 +173,16 @@ function bindFilterChips() {
       } else {
         url.searchParams.set(filterKey, filterVal);
       }
+      // Reset to page 1 when filter or limit changes
+      url.searchParams.delete('page');
 
       window.location.href = url.toString();
     });
   });
+}
 
-  const modelSelect = document.getElementById('filter-model-select');
-  if (modelSelect) {
-    modelSelect.addEventListener('change', () => {
-      const url = new URL(window.location.href);
-      if (modelSelect.value === 'all') {
-        url.searchParams.delete('model');
-      } else {
-        url.searchParams.set('model', modelSelect.value);
-      }
-      window.location.href = url.toString();
-    });
-  }
+function changePage(pageNum) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('page', pageNum);
+  window.location.href = url.toString();
 }

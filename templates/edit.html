@@ -87,12 +87,12 @@
           <!-- Button Ganti Foto Direct -->
           <label class="btn small" style="margin: 0; font-size: 0.78rem; cursor: pointer; background: #eef2f8; color: #14315c; border: 1px solid #c5d4ea; display: flex; align-items: center; justify-content: center; gap: 4px;">
             <i data-lucide="refresh-cw" style="width: 12px; height: 12px;"></i> Ganti Foto Ini
-            <input type="file" name="replace_photo_{{ p['id'] }}" accept="image/*" capture="environment" style="display: none;" onchange="previewReplacePhoto(this, '{{ p['id'] }}')">
+            <input type="file" name="replace_photo_{{ p.id }}" accept="image/*" capture="environment" style="display: none;" onchange="previewReplacePhoto(this, '{{ p.id }}')">
           </label>
 
           <!-- Checkbox Hapus -->
           <label style="display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 0.75rem; color: #c62828; cursor: pointer; margin-top: 2px;">
-            <input type="checkbox" name="delete_photo_ids" value="{{ p['id'] }}" onchange="toggleDeletePhotoCard(this, '{{ p['id'] }}')">
+            <input type="checkbox" name="delete_photo_ids" value="{{ p.id }}" onchange="toggleDeletePhotoCard(this, '{{ p.id }}')">
             <span>Hapus foto</span>
           </label>
         </div>

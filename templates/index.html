@@ -38,81 +38,67 @@
   </div>
 </div>
 
-<!-- Phase 4: Visual Dashboard Analytics -->
-<section class="analytics-grid">
-  <div class="analytics-card">
-    <div class="card-head">
-      <i data-lucide="pie-chart" class="icon"></i>
-      <span>Rasio Kelulusan (PASS / FAIL)</span>
-    </div>
-    <div class="card-body chart-container">
-      <canvas id="chart-pass-fail"></canvas>
-    </div>
-  </div>
-
-  <div class="analytics-card">
-    <div class="card-head">
-      <i data-lucide="bar-chart-2" class="icon"></i>
-      <span>Throughput Pengujian Harian (14 Hari)</span>
-    </div>
-    <div class="card-body chart-container">
-      <canvas id="chart-throughput"></canvas>
-    </div>
-  </div>
-
-  <div class="analytics-card">
-    <div class="card-head">
-      <i data-lucide="alert-triangle" class="icon" style="color: #ef4444;"></i>
-      <span>Top Item Uji Sering Gagal</span>
-    </div>
-    <div class="card-body" id="top-failed-container">
-      <!-- Populated dynamically by analytics.js -->
-    </div>
-  </div>
-</section>
-
-<!-- Phase 4: Advanced Filter Chips Bar -->
+<!-- Phase 4: Advanced Filter Dropdowns Bar -->
 <div class="filter-toolbar">
-  <div class="filter-group">
-    <span class="filter-label"><i data-lucide="filter" class="icon small"></i> Status:</span>
-    <div class="chips">
-      <button class="chip {{ 'active' if filter_status == 'all' or not filter_status else '' }}" data-filter="status" data-value="all">Semua</button>
-      <button class="chip pass {{ 'active' if filter_status == 'PASS' else '' }}" data-filter="status" data-value="PASS">PASS</button>
-      <button class="chip fail {{ 'active' if filter_status == 'FAIL' else '' }}" data-filter="status" data-value="FAIL">FAIL</button>
-    </div>
+  <div class="filter-toolbar-header">
+    <i data-lucide="sliders-horizontal" class="icon" style="color: var(--primary);"></i>
+    <span>Filter Data</span>
   </div>
 
-  <div class="filter-group">
-    <span class="filter-label">Vendor:</span>
-    <div class="chips">
-      <button class="chip {{ 'active' if filter_vendor == 'all' or not filter_vendor else '' }}" data-filter="vendor" data-value="all">Semua</button>
-      <button class="chip {{ 'active' if filter_vendor == 'fortinet' else '' }}" data-filter="vendor" data-value="fortinet">Fortinet</button>
-      <button class="chip {{ 'active' if filter_vendor == 'cisco' else '' }}" data-filter="vendor" data-value="cisco">Cisco</button>
-      <button class="chip {{ 'active' if filter_vendor == 'velocloud' else '' }}" data-filter="vendor" data-value="velocloud">VeloCloud</button>
+  <div class="filter-controls">
+    <!-- Status Filter -->
+    <div class="filter-item">
+      <label for="filter-status-select" class="filter-label">Status</label>
+      <select id="filter-status-select" class="filter-select {{ 'has-value' if filter_status and filter_status != 'all' else '' }}" data-filter="status">
+        <option value="all" {{ 'selected' if filter_status == 'all' or not filter_status else '' }}>Semua Status</option>
+        <option value="PASS" {{ 'selected' if filter_status == 'PASS' else '' }}>PASS</option>
+        <option value="FAIL" {{ 'selected' if filter_status == 'FAIL' else '' }}>FAIL</option>
+      </select>
     </div>
-  </div>
 
-  <div class="filter-group">
-    <span class="filter-label">Tanggal:</span>
-    <div class="chips">
-      <button class="chip {{ 'active' if filter_date_range == 'all' or not filter_date_range else '' }}" data-filter="date_range" data-value="all">Semua</button>
-      <button class="chip {{ 'active' if filter_date_range == 'today' else '' }}" data-filter="date_range" data-value="today">Hari Ini</button>
-      <button class="chip {{ 'active' if filter_date_range == '7days' else '' }}" data-filter="date_range" data-value="7days">7 Hari</button>
-      <button class="chip {{ 'active' if filter_date_range == '30days' else '' }}" data-filter="date_range" data-value="30days">30 Hari</button>
+    <!-- Vendor Filter -->
+    <div class="filter-item">
+      <label for="filter-vendor-select" class="filter-label">Vendor</label>
+      <select id="filter-vendor-select" class="filter-select {{ 'has-value' if filter_vendor and filter_vendor != 'all' else '' }}" data-filter="vendor">
+        <option value="all" {{ 'selected' if filter_vendor == 'all' or not filter_vendor else '' }}>Semua Vendor</option>
+        <option value="fortinet" {{ 'selected' if filter_vendor == 'fortinet' else '' }}>Fortinet</option>
+        <option value="cisco" {{ 'selected' if filter_vendor == 'cisco' else '' }}>Cisco</option>
+        <option value="velocloud" {{ 'selected' if filter_vendor == 'velocloud' else '' }}>VMware VeloCloud</option>
+      </select>
     </div>
-  </div>
 
-  {% if analytics and analytics['available_models'] %}
-  <div class="filter-group select-group">
-    <span class="filter-label">Model:</span>
-    <select id="filter-model-select" class="filter-select">
-      <option value="all" {{ 'selected' if filter_model == 'all' or not filter_model else '' }}>Semua Model</option>
-      {% for m in analytics['available_models'] %}
-      <option value="{{ m }}" {{ 'selected' if filter_model == m else '' }}>{{ m }}</option>
-      {% endfor %}
-    </select>
+    <!-- Tanggal Filter -->
+    <div class="filter-item">
+      <label for="filter-date-select" class="filter-label">Tanggal</label>
+      <select id="filter-date-select" class="filter-select {{ 'has-value' if filter_date_range and filter_date_range != 'all' else '' }}" data-filter="date_range">
+        <option value="all" {{ 'selected' if filter_date_range == 'all' or not filter_date_range else '' }}>Semua Tanggal</option>
+        <option value="today" {{ 'selected' if filter_date_range == 'today' else '' }}>Hari Ini</option>
+        <option value="7days" {{ 'selected' if filter_date_range == '7days' else '' }}>7 Hari Terakhir</option>
+        <option value="30days" {{ 'selected' if filter_date_range == '30days' else '' }}>30 Hari Terakhir</option>
+      </select>
+    </div>
+
+    <!-- Model Filter -->
+    <div class="filter-item">
+      <label for="filter-model-select" class="filter-label">Model</label>
+      <select id="filter-model-select" class="filter-select {{ 'has-value' if filter_model and filter_model != 'all' else '' }}" data-filter="model">
+        <option value="all" {{ 'selected' if filter_model == 'all' or not filter_model else '' }}>Semua Model</option>
+        {% if analytics and analytics['available_models'] %}
+        {% for m in analytics['available_models'] %}
+        <option value="{{ m }}" {{ 'selected' if filter_model == m else '' }}>{{ m }}</option>
+        {% endfor %}
+        {% endif %}
+      </select>
+    </div>
+
+    {% if (filter_status and filter_status != 'all') or (filter_vendor and filter_vendor != 'all') or (filter_date_range and filter_date_range != 'all') or (filter_model and filter_model != 'all') or (filter_limit and filter_limit != 10) %}
+    <div class="filter-item filter-reset-wrap">
+      <a href="/" class="btn danger small filter-reset-btn" title="Reset semua filter">
+        <i data-lucide="rotate-ccw" class="icon small"></i> Reset
+      </a>
+    </div>
+    {% endif %}
   </div>
-  {% endif %}
 </div>
 
 <section id="table-section">
@@ -166,6 +152,46 @@
     <tr><td colspan="8" class="empty">Belum ada data pengujian.</td></tr>
     {% endfor %}
   </table>
+  </div>
+
+  <!-- Pagination Bar -->
+  <div class="pagination-bar">
+    <div class="pagination-info">
+      Menampilkan <strong>{{ rows | length }}</strong> dari <strong>{{ total_filtered_rows }}</strong> data (Halaman {{ current_page }} dari {{ total_pages }})
+    </div>
+    <div class="pagination-controls">
+      <div class="pagination-limit">
+        <label for="filter-limit-select" class="pagination-limit-label">Tampilkan:</label>
+        <select id="filter-limit-select" class="filter-select pagination-limit-select" data-filter="limit">
+          <option value="10" {{ 'selected' if filter_limit == 10 else '' }}>10</option>
+          <option value="25" {{ 'selected' if filter_limit == 25 else '' }}>25</option>
+          <option value="50" {{ 'selected' if filter_limit == 50 else '' }}>50</option>
+          <option value="100" {{ 'selected' if filter_limit == 100 else '' }}>100</option>
+        </select>
+      </div>
+
+      {% if current_page > 1 %}
+      <button type="button" class="btn small" data-page="{{ current_page - 1 }}" onclick="changePage(this.dataset.page)">
+        <i data-lucide="chevron-left" class="icon small"></i> Sebelum
+      </button>
+      {% else %}
+      <button type="button" class="btn small" disabled>
+        <i data-lucide="chevron-left" class="icon small"></i> Sebelum
+      </button>
+      {% endif %}
+
+      <span class="page-badge">Hal {{ current_page }} / {{ total_pages }}</span>
+
+      {% if current_page < total_pages %}
+      <button type="button" class="btn small" data-page="{{ current_page + 1 }}" onclick="changePage(this.dataset.page)">
+        Berikut <i data-lucide="chevron-right" class="icon small"></i>
+      </button>
+      {% else %}
+      <button type="button" class="btn small" disabled>
+        Berikut <i data-lucide="chevron-right" class="icon small"></i>
+      </button>
+      {% endif %}
+    </div>
   </div>
 </section>
 <form method="post" id="deleteform" style="display:none">
@@ -458,9 +484,5 @@ if (searchInput && searchSuggestions) {
 }
 </script>
 
-<script id="analytics-json-data" type="application/json">
-  {{ analytics | tojson }}
-</script>
-<script src="/static/chart.min.js"></script>
 <script src="/static/analytics.js"></script>
 {% endblock %}

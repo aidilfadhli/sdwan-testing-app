@@ -37,6 +37,11 @@ class TestAnalytics(unittest.TestCase):
 
             cisco_data = get_analytics_data(vendor="cisco")
             self.assertGreaterEqual(cisco_data["summary"]["total"], 1)
+
+            # Test date range filters (today, 7days, 30days)
+            for dr in ("today", "7days", "30days"):
+                dr_data = get_analytics_data(date_range=dr)
+                self.assertIn("summary", dr_data)
         finally:
             conn = get_conn()
             conn.execute("DELETE FROM reports WHERE serial_number IN ('TESTSN001', 'TESTSN002')")

@@ -13,7 +13,7 @@ import shutil
 import socket
 import threading
 import zipfile
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from fastapi import FastAPI, Form, Request
@@ -315,6 +315,36 @@ def get_stats_api(
     return get_analytics_data(vendor=vendor, status=status, date_range=date_range, model=model)
 
 
+@app.get("/analytics")
+def analytics_page(
+    request: Request,
+    vendor: str = "all",
+    status: str = "all",
+    date_range: str = "all",
+    model: str = "all",
+):
+    """Halaman Visual Dashboard Analytics dedicated."""
+    analytics = get_analytics_data(vendor=vendor, status=status, date_range=date_range, model=model)
+    return templates.TemplateResponse(
+        request,
+        "analytics.html",
+        {
+            "analytics": analytics,
+            "stats": {
+                "total": analytics["summary"]["total"],
+                "lulus": analytics["summary"]["pass"],
+                "gagal": analytics["summary"]["fail"],
+                "pass_rate": analytics["summary"]["pass_rate"],
+            },
+            "filter_vendor": vendor,
+            "filter_status": status,
+            "filter_date_range": date_range,
+            "filter_model": model,
+            "server_url": server_url(request),
+        },
+    )
+
+
 @app.get("/")
 def index(
     request: Request,
@@ -323,6 +353,8 @@ def index(
     status: str = "all",
     date_range: str = "all",
     model: str = "all",
+    limit: int = 10,
+    page: int = 1,
 ):
     conn = get_conn()
     where_clauses = []
@@ -358,8 +390,21 @@ def index(
         params.append(start_d.strftime("%Y-%m-%d"))
 
     where_sql = (" WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
-    query = f"SELECT * FROM reports{where_sql} ORDER BY id DESC LIMIT 200"
-    rows = conn.execute(query, params).fetchall()
+    
+    # Hitung total baris yang cocok dengan filter untuk navigasi pagination
+    count_query = f"SELECT COUNT(*) FROM reports{where_sql}"
+    total_filtered_rows = conn.execute(count_query, params).fetchone()[0] or 0
+
+    if limit not in (10, 25, 50, 100, 200):
+        limit = 10
+
+    max_pages = max(1, (total_filtered_rows + limit - 1) // limit)
+    page = max(1, min(page, max_pages))
+    offset = (page - 1) * limit
+
+    query = f"SELECT * FROM reports{where_sql} ORDER BY id DESC LIMIT ? OFFSET ?"
+    query_params = params + [limit, offset]
+    rows = conn.execute(query, query_params).fetchall()
     conn.close()
 
     analytics = get_analytics_data(vendor=vendor, status=status, date_range=date_range, model=model)
@@ -381,6 +426,10 @@ def index(
             "filter_status": status,
             "filter_date_range": date_range,
             "filter_model": model,
+            "filter_limit": limit,
+            "current_page": page,
+            "total_pages": max_pages,
+            "total_filtered_rows": total_filtered_rows,
             "server_url": server_url(request),
         },
     )
