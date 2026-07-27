@@ -205,7 +205,7 @@ def server_url(request: Request) -> str:
 
 
 def add_watermark(img: Image.Image, watermark_data: str | list[str]) -> Image.Image:
-    """Tambahkan box timestamp multiline (SN, Date, Time, Location) di sudut foto."""
+    """Tambahkan timestamp kamera (SN, Date, Time, Location) dengan outline drop-shadow tanpa box background."""
     if not watermark_data:
         return img
     try:
@@ -215,77 +215,86 @@ def add_watermark(img: Image.Image, watermark_data: str | list[str]) -> Image.Im
         img_rgba = img.convert("RGBA")
         width, height = img_rgba.size
 
-        # Format multiline: SN, Date, Time, Location
-        lines = []
+        # Parse inputs into structured fields
+        sn_val, date_val, time_val, loc_val = "", "", "", ""
         if isinstance(watermark_data, list):
-            lines = watermark_data
+            for item in watermark_data:
+                if item.startswith("SN:") or item.startswith("S/N:"):
+                    sn_val = item.replace("S/N:", "").replace("SN:", "").strip()
+                elif item.startswith("Date:"):
+                    date_val = item.replace("Date:", "").strip()
+                elif item.startswith("Time:"):
+                    time_val = item.replace("Time:", "").strip()
+                elif item.startswith("Location:"):
+                    loc_val = item.replace("Location:", "").strip()
         elif isinstance(watermark_data, str):
-            if "\n" in watermark_data:
-                lines = [l.strip() for l in watermark_data.split("\n") if l.strip()]
-            elif "|" in watermark_data:
+            if "|" in watermark_data:
                 parts = [p.strip() for p in watermark_data.split("|")]
                 sn_val = parts[0].replace("S/N:", "").replace("SN:", "").strip() if len(parts) >= 1 else ""
                 date_val = parts[1].strip() if len(parts) >= 2 else datetime.now().strftime("%Y-%m-%d")
                 loc_val = parts[2].strip() if len(parts) >= 3 else ""
-                lines = [
-                    f"SN: {sn_val}",
-                    f"Date: {date_val}",
-                    f"Time: {datetime.now().strftime('%H:%M:%S')}",
-                    f"Location: {loc_val}"
-                ]
+                time_val = datetime.now().strftime("%H:%M:%S")
             else:
-                lines = [watermark_data]
+                sn_val = watermark_data
 
-        lines = [l for l in lines if l and l.strip()]
+        if not date_val:
+            date_val = datetime.now().strftime("%Y-%m-%d")
+        if not time_val:
+            time_val = datetime.now().strftime("%H:%M:%S")
+
+        # 3 clean, structured lines
+        lines = []
+        if sn_val:
+            lines.append(f"SN: {sn_val}")
+        lines.append(f"{date_val}  {time_val}")
+        if loc_val:
+            lines.append(f"{loc_val}")
+
         if not lines:
             return img
 
-        # Font size proportional to image height
-        font_size = max(14, int(height * 0.026))
+        # Camera Timestamp Font scaling (2.5% of image height)
+        font_size = max(15, int(height * 0.025))
         try:
-            font = ImageFont.truetype("arial.ttf", font_size)
+            font = ImageFont.truetype("arialbd.ttf", font_size)
         except Exception:
-            font = ImageFont.load_default()
+            try:
+                font = ImageFont.truetype("arial.ttf", font_size)
+            except Exception:
+                font = ImageFont.load_default()
 
-        draw_dummy = ImageDraw.Draw(img_rgba)
+        draw = ImageDraw.Draw(img_rgba)
         line_heights = []
-        line_widths = []
         for line in lines:
-            bbox = draw_dummy.textbbox((0, 0), line, font=font)
-            line_widths.append(bbox[2] - bbox[0])
+            bbox = draw.textbbox((0, 0), line, font=font)
             line_heights.append(bbox[3] - bbox[1])
 
-        max_text_w = max(line_widths) if line_widths else 0
         single_line_h = max(line_heights) if line_heights else font_size
-        line_spacing = max(4, int(font_size * 0.25))
+        line_spacing = max(4, int(font_size * 0.28))
 
         total_text_h = sum(line_heights) + (line_spacing * (len(lines) - 1))
 
-        padding_x = max(14, int(font_size * 0.7))
-        padding_y = max(10, int(font_size * 0.5))
-        margin = max(14, int(font_size * 0.5))
+        # Position at bottom-left corner with generous margin
+        margin_x = max(18, int(width * 0.035))
+        margin_y = max(20, int(height * 0.03))
 
-        box_w = max_text_w + (padding_x * 2)
-        box_h = total_text_h + (padding_y * 2)
+        x = margin_x
+        y = max(0, height - margin_y - total_text_h)
 
-        # Position at bottom-left corner with margin
-        x1 = margin
-        y2 = height - margin
-        y1 = max(0, y2 - box_h)
-        x2 = min(width - margin, x1 + box_w)
+        stroke_w = max(2, int(font_size * 0.12))
 
-        # Translucent dark overlay panel with red border accent
-        overlay = Image.new("RGBA", img_rgba.size, (0, 0, 0, 0))
-        draw_ov = ImageDraw.Draw(overlay)
-        draw_ov.rectangle([x1, y1, x2, y2], fill=(15, 23, 42, 215), outline=(237, 28, 36, 255), width=2)
-
-        img_rgba = Image.alpha_composite(img_rgba, overlay)
-        draw_final = ImageDraw.Draw(img_rgba)
-
-        # Draw stacked text lines top to bottom
-        current_y = y1 + padding_y
+        # Draw camera timestamp text with heavy dark drop-shadow outline
+        current_y = y
         for line in lines:
-            draw_final.text((x1 + padding_x, current_y), line, fill=(255, 255, 255, 255), font=font)
+            fill_color = (255, 215, 0, 255) if line.startswith("SN:") else (255, 255, 255, 255)
+            draw.text(
+                (x, current_y),
+                line,
+                fill=fill_color,
+                font=font,
+                stroke_width=stroke_w,
+                stroke_fill=(0, 0, 0, 245)
+            )
             current_y += single_line_h + line_spacing
 
         return img_rgba.convert("RGB")
@@ -597,6 +606,8 @@ async def submit(request: Request):
                 val("catatan"), status,
             ),
         )
+        report_id = cur.lastrowid
+        dest = evidence_dir(report_id, sn)
         cur_time = datetime.now().strftime("%H:%M:%S")
         wm_text = [
             f"SN: {sn}",

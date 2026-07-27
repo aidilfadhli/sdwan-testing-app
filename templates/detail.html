@@ -29,7 +29,8 @@
   <legend>Riwayat Pengujian S/N Ini (Total {{ history|length }} Versi)</legend>
   <div style="display: flex; flex-direction: column; gap: 8px;">
     {% for h in history %}
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #fff; border-radius: 6px; border-left: 3px solid {{ '#1e7d32' if h['status'] == 'PASS' else '#c62828' }}; font-size: 0.88rem;">
+    {% set bcolor = '#1e7d32' if h['status'] == 'PASS' else '#c62828' %}
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #fff; border-radius: 6px; border-left: 3px solid {{ bcolor }}; font-size: 0.88rem;">
       <div>
         <strong>Laporan #{{ h['id'] }} — Versi {{ h['version'] or 1 }}</strong>
         <span style="font-size: 0.8rem; color: #666; margin-left: 8px;">{{ h['tanggal'] }} (Petugas: {{ h['petugas'] or '—' }})</span>
@@ -75,9 +76,17 @@
       <span class="kv-label">Petugas</span>
       <span class="kv-val">{{ r['petugas'] }}</span>
     </div>
-    <div class="kv-item full-width">
-      <span class="kv-label">Mengetahui / Menyetujui</span>
-      <span class="kv-val">{{ [r['saksi'], r['saksi2'], r['saksi3']] | select | join(', ') or '—' }}</span>
+    <div class="kv-item">
+      <span class="kv-label">Saksi DCS</span>
+      <span class="kv-val">{{ r['saksi'] or '—' }}</span>
+    </div>
+    <div class="kv-item">
+      <span class="kv-label">Saksi DID</span>
+      <span class="kv-val">{{ r['saksi2'] or '—' }}</span>
+    </div>
+    <div class="kv-item">
+      <span class="kv-label">Saksi ECS</span>
+      <span class="kv-val">{{ r['saksi3'] or '—' }}</span>
     </div>
     <div class="kv-item full-width">
       <span class="kv-label">Waktu Input</span>
