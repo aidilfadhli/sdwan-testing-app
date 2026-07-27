@@ -20,6 +20,7 @@
       <div class="stat"><span class="num">{{ stats['total'] or 0 }}</span><span>TOTAL DIUJI</span></div>
       <div class="stat pass"><span class="num">{{ stats['lulus'] or 0 }}</span><span>PASS</span></div>
       <div class="stat fail"><span class="num">{{ stats['gagal'] or 0 }}</span><span>FAIL</span></div>
+      <div class="stat rate"><span class="num">{{ stats['pass_rate'] or 0 }}%</span><span>PASS RATE</span></div>
     </div>
   </div>
 
@@ -35,6 +36,83 @@
       </div>
     </div>
   </div>
+</div>
+
+<!-- Phase 4: Visual Dashboard Analytics -->
+<section class="analytics-grid">
+  <div class="analytics-card">
+    <div class="card-head">
+      <i data-lucide="pie-chart" class="icon"></i>
+      <span>Rasio Kelulusan (PASS / FAIL)</span>
+    </div>
+    <div class="card-body chart-container">
+      <canvas id="chart-pass-fail"></canvas>
+    </div>
+  </div>
+
+  <div class="analytics-card">
+    <div class="card-head">
+      <i data-lucide="bar-chart-2" class="icon"></i>
+      <span>Throughput Pengujian Harian (14 Hari)</span>
+    </div>
+    <div class="card-body chart-container">
+      <canvas id="chart-throughput"></canvas>
+    </div>
+  </div>
+
+  <div class="analytics-card">
+    <div class="card-head">
+      <i data-lucide="alert-triangle" class="icon" style="color: #ef4444;"></i>
+      <span>Top Item Uji Sering Gagal</span>
+    </div>
+    <div class="card-body" id="top-failed-container">
+      <!-- Populated dynamically by analytics.js -->
+    </div>
+  </div>
+</section>
+
+<!-- Phase 4: Advanced Filter Chips Bar -->
+<div class="filter-toolbar">
+  <div class="filter-group">
+    <span class="filter-label"><i data-lucide="filter" class="icon small"></i> Status:</span>
+    <div class="chips">
+      <button class="chip {{ 'active' if filter_status == 'all' or not filter_status else '' }}" data-filter="status" data-value="all">Semua</button>
+      <button class="chip pass {{ 'active' if filter_status == 'PASS' else '' }}" data-filter="status" data-value="PASS">PASS</button>
+      <button class="chip fail {{ 'active' if filter_status == 'FAIL' else '' }}" data-filter="status" data-value="FAIL">FAIL</button>
+    </div>
+  </div>
+
+  <div class="filter-group">
+    <span class="filter-label">Vendor:</span>
+    <div class="chips">
+      <button class="chip {{ 'active' if filter_vendor == 'all' or not filter_vendor else '' }}" data-filter="vendor" data-value="all">Semua</button>
+      <button class="chip {{ 'active' if filter_vendor == 'fortinet' else '' }}" data-filter="vendor" data-value="fortinet">Fortinet</button>
+      <button class="chip {{ 'active' if filter_vendor == 'cisco' else '' }}" data-filter="vendor" data-value="cisco">Cisco</button>
+      <button class="chip {{ 'active' if filter_vendor == 'velocloud' else '' }}" data-filter="vendor" data-value="velocloud">VeloCloud</button>
+    </div>
+  </div>
+
+  <div class="filter-group">
+    <span class="filter-label">Tanggal:</span>
+    <div class="chips">
+      <button class="chip {{ 'active' if filter_date_range == 'all' or not filter_date_range else '' }}" data-filter="date_range" data-value="all">Semua</button>
+      <button class="chip {{ 'active' if filter_date_range == 'today' else '' }}" data-filter="date_range" data-value="today">Hari Ini</button>
+      <button class="chip {{ 'active' if filter_date_range == '7days' else '' }}" data-filter="date_range" data-value="7days">7 Hari</button>
+      <button class="chip {{ 'active' if filter_date_range == '30days' else '' }}" data-filter="date_range" data-value="30days">30 Hari</button>
+    </div>
+  </div>
+
+  {% if analytics and analytics['available_models'] %}
+  <div class="filter-group select-group">
+    <span class="filter-label">Model:</span>
+    <select id="filter-model-select" class="filter-select">
+      <option value="all" {{ 'selected' if filter_model == 'all' or not filter_model else '' }}>Semua Model</option>
+      {% for m in analytics['available_models'] %}
+      <option value="{{ m }}" {{ 'selected' if filter_model == m else '' }}>{{ m }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
 </div>
 
 <section id="table-section">
@@ -379,4 +457,10 @@ if (searchInput && searchSuggestions) {
   });
 }
 </script>
+
+<script id="analytics-json-data" type="application/json">
+  {{ analytics | tojson }}
+</script>
+<script src="/static/chart.min.js"></script>
+<script src="/static/analytics.js"></script>
 {% endblock %}

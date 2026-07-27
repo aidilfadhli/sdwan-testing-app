@@ -78,6 +78,11 @@ Centralized metadata registry for all supported SD-WAN vendors:
 - **Metadata Auto-Suggest API (`/api/suggestions`)**: Dynamically feeds HTML `<datalist>` dropdowns for `lokasi`, `petugas`, `saksi1-3`, and `type_device`.
 - **Offline Draft Resilience (`static/drafts.js`)**: Real-time `localStorage` autosave with a yellow restore banner if Wi-Fi drops mid-test.
 
+### Phase 4: Visual Dashboard Analytics & Advanced Filtering
+- **Analytics API (`/api/stats`)**: Dedicated backend analytics calculation endpoint in `analytics.py` returning PASS/FAIL ratio, daily throughput trends, top failed checklist items, and model lists.
+- **Visual Dashboard Charts (`index.html`)**: Donut chart for PASS/FAIL ratio, bar chart for 14-day daily throughput trends, and visual bar progress ranking for top failed items (via Chart.js).
+- **Advanced Filter Chips**: Interactive filter toolbar supporting real-time multi-criteria filtering by Status (PASS/FAIL), Vendor (Fortinet, Cisco, VeloCloud), Date Range (Hari Ini, 7 Hari, 30 Hari), and Device Model.
+
 ---
 
 ## ⏸️ Deferred Features (On Hold)

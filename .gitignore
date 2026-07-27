@@ -1,13 +1,22 @@
-# Python cache files
+# Python cache & virtual environments
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.venv/
+venv/
+env/
 
-# Local database & settings
-data/testing.db
-data/supervisor_pin.txt
+# Local data & database
+data/
 
-# SSL certificates (sensitive)
-certs/key.pem
-certs/cert.pem
+# SSL certificates
+certs/
+
+# Local backups
+BACKUP/
+*.zip
+
+# OS metadata
+.DS_Store
+Thumbs.db
