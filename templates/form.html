@@ -1,9 +1,31 @@
 {% extends "base.html" %}
-{% block title %}Form Uji Fungsi{% endblock %}
+{% block title %}Form Uji Fungsi — {{ vendor_spec['name'] }}{% endblock %}
 {% block content %}
-<h1>Berita Acara Uji Fungsi — Fortinet SD-WAN Edge</h1>
+<div class="vendor-selector-bar" style="margin-bottom: 20px;">
+  <label style="font-weight: 600; margin-right: 12px;">Pilih Vendor / Platform:</label>
+  <div class="vendor-tabs" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px;">
+    {% for v_id, v_spec in VENDOR_REGISTRY.items() %}
+    <a href="/form?vendor={{ v_id }}&sn={{ sn }}" 
+       class="btn {{ 'primary' if v_id == vendor_spec['id'] else 'secondary' }}"
+       style="text-decoration: none;">
+      {{ v_spec['name'] }}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<h1>Berita Acara Uji Fungsi — {{ vendor_spec['name'] }}</h1>
+
+{% if suggested_version and suggested_version > 1 %}
+<div class="infobanner" style="background: #eef2f8; color: #14315c; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #14315c; font-size: 0.9rem;">
+  <i data-lucide="info" class="icon"></i> <strong>Pengujian Ulang (Versi {{ suggested_version }}):</strong> Anda sedang membuat laporan uji fungsi baru untuk S/N {{ sn }}. Histori laporan terdahulu tetap tersimpan aman.
+</div>
+{% endif %}
 
 <form action="/submit" method="post" enctype="multipart/form-data" class="testform" id="testform">
+<input type="hidden" name="vendor" value="{{ vendor_spec['id'] }}">
+<input type="hidden" name="version" value="{{ suggested_version or 1 }}">
+<input type="hidden" name="parent_report_id" value="{{ parent_report_id or '' }}">
 
 <fieldset>
   <legend>I. Identitas Perangkat & Pengujian</legend>
@@ -17,7 +39,7 @@
       </span>
     </label>
     <label>Type Device
-      <input name="type_device" id="type_device" value="Fortigate 40F" autocomplete="off">
+      <input name="type_device" id="type_device" value="{{ default_type_device }}" autocomplete="off">
     </label>
     <label>Lokasi Pengujian
       <input name="lokasi" id="lokasi" value="{{ default_lokasi or 'Gudang DCS Telkom Kebon Sirih' }}">
@@ -28,21 +50,21 @@
     <label>Petugas Penguji
       <input name="petugas" id="petugas" value="{{ default_petugas }}">
     </label>
-    <label>Mengetahui / Menyetujui 1
+    <label>Mengetahui / Saksi 1 (DCS)
       <input name="saksi" id="saksi">
     </label>
-    <label>Mengetahui / Menyetujui 2
+    <label>Mengetahui / Saksi 2 (DID)
       <input name="saksi2" id="saksi2">
     </label>
-    <label>Mengetahui / Menyetujui 3
+    <label>Mengetahui / Saksi 3 (ECS)
       <input name="saksi3" id="saksi3">
     </label>
   </div>
 </fieldset>
 
 <fieldset>
-  <legend>II. Checklist Uji Fungsi</legend>
-  {% for item in CHECKLIST_ITEMS %}
+  <legend>II. Checklist Uji Fungsi ({{ vendor_spec['name'] }})</legend>
+  {% for item in vendor_spec['items'] %}
   {% set i = loop.index %}
   <div class="checkitem">
     <div class="checkinfo">
@@ -64,7 +86,7 @@
 
 <fieldset>
   <legend>III. Lampiran Dokumentasi Foto</legend>
-  {% for s in PHOTO_SECTIONS %}
+  {% for s in vendor_spec['photo_sections'] %}
   <div class="photoitem">
     <strong>{{ loop.index }}. {{ s.judul }}</strong>
     <div class="photoinputs">
@@ -128,4 +150,5 @@ document.getElementById('testform').addEventListener('submit', () => {
   b.disabled = true; b.textContent = 'Menyimpan & menyusun BA…';
 });
 </script>
+<script src="/static/drafts.js"></script>
 {% endblock %}

@@ -10,6 +10,9 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS reports (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     serial_number TEXT NOT NULL,
+    vendor TEXT DEFAULT 'fortinet',
+    version INTEGER DEFAULT 1,
+    parent_report_id INTEGER DEFAULT NULL,
     type_device TEXT DEFAULT '',
     lokasi TEXT DEFAULT '',
     tanggal TEXT DEFAULT '',
@@ -23,6 +26,13 @@ CREATE TABLE IF NOT EXISTS reports (
     hasil4 TEXT DEFAULT '', ket4 TEXT DEFAULT '',
     hasil5 TEXT DEFAULT '', ket5 TEXT DEFAULT '',
     hasil6 TEXT DEFAULT '', ket6 TEXT DEFAULT '',
+    hasil7 TEXT DEFAULT '', ket7 TEXT DEFAULT '',
+    hasil8 TEXT DEFAULT '', ket8 TEXT DEFAULT '',
+    hasil9 TEXT DEFAULT '', ket9 TEXT DEFAULT '',
+    hasil10 TEXT DEFAULT '', ket10 TEXT DEFAULT '',
+    hasil11 TEXT DEFAULT '', ket11 TEXT DEFAULT '',
+    hasil12 TEXT DEFAULT '', ket12 TEXT DEFAULT '',
+    hasil13 TEXT DEFAULT '', ket13 TEXT DEFAULT '',
     catatan TEXT DEFAULT '',
     status TEXT DEFAULT '',
     created_at TEXT DEFAULT (datetime('now', 'localtime'))
@@ -33,13 +43,11 @@ CREATE TABLE IF NOT EXISTS photos (
     section TEXT NOT NULL,
     filename TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_reports_sn ON reports(serial_number);
-CREATE INDEX IF NOT EXISTS idx_photos_report ON photos(report_id);
 """
 
 
 def _migrate(conn: sqlite3.Connection) -> None:
-    """Sesuaikan database lama dengan format dokumen BA revisi Jul 2026."""
+    """Sesuaikan database lama dengan format multi-vendor & re-inspection versi Jul 2026."""
     cols = {r[1] for r in conn.execute("PRAGMA table_info(reports)")}
     if "hostname" in cols:
         conn.execute("ALTER TABLE reports RENAME COLUMN hostname TO type_device")
@@ -48,6 +56,24 @@ def _migrate(conn: sqlite3.Connection) -> None:
     for col in ("saksi2", "saksi3"):
         if col not in cols:
             conn.execute(f"ALTER TABLE reports ADD COLUMN {col} TEXT DEFAULT ''")
+    
+    if "vendor" not in cols:
+        conn.execute("ALTER TABLE reports ADD COLUMN vendor TEXT DEFAULT 'fortinet'")
+    if "version" not in cols:
+        conn.execute("ALTER TABLE reports ADD COLUMN version INTEGER DEFAULT 1")
+    if "parent_report_id" not in cols:
+        conn.execute("ALTER TABLE reports ADD COLUMN parent_report_id INTEGER DEFAULT NULL")
+
+    for i in range(7, 14):
+        if f"hasil{i}" not in cols:
+            conn.execute(f"ALTER TABLE reports ADD COLUMN hasil{i} TEXT DEFAULT ''")
+        if f"ket{i}" not in cols:
+            conn.execute(f"ALTER TABLE reports ADD COLUMN ket{i} TEXT DEFAULT ''")
+            
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_reports_sn ON reports(serial_number);")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_reports_vendor ON reports(vendor);")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status);")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_photos_report ON photos(report_id);")
     conn.commit()
 
 

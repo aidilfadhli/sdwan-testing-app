@@ -68,11 +68,13 @@
   </div>
   <div class="tablewrap">
   <table>
-    <tr><th class="th-check"></th><th class="th-id">ID</th><th>Serial Number</th><th>Type Device</th><th>Tanggal</th><th>Petugas</th><th>Status</th></tr>
+    <tr><th class="th-check"></th><th class="th-id">ID</th><th>Vendor</th><th>Serial Number</th><th>Type Device</th><th>Tanggal</th><th>Petugas</th><th>Status</th></tr>
     {% for r in rows %}
+    {% set v_spec = get_vendor_spec(r['vendor']) %}
     <tr class="datarow" data-id="{{ r['id'] }}" data-sn="{{ r['serial_number'] }}">
       <td class="td-check"><input type="checkbox" class="rowsel" value="{{ r['id'] }}" onchange="updateBulk()"></td>
       <td class="td-id">{{ r['id'] }}</td>
+      <td class="td-vendor"><span class="badge small" style="background:#eef2f8; color:#14315c; font-size:0.75rem; font-weight:600;">{{ v_spec['name'].split()[0] }}</span></td>
       <td class="td-sn"><a href="/device/{{ r['id'] }}" class="sn-link">{{ r['serial_number'] }}</a></td>
       <td class="td-type">{{ r['type_device'] }}</td>
       <td class="td-date">{{ r['tanggal'] }}</td>
@@ -83,7 +85,7 @@
       </td>
     </tr>
     {% else %}
-    <tr><td colspan="7" class="empty">Belum ada data pengujian.</td></tr>
+    <tr><td colspan="8" class="empty">Belum ada data pengujian.</td></tr>
     {% endfor %}
   </table>
   </div>
@@ -105,6 +107,7 @@
     <div class="action-body" style="display:flex; flex-direction:column; gap:12px;">
       <a class="btn primary big" id="action-print" target="_blank"><i data-lucide="printer" class="icon"></i> Print Laporan</a>
       <a class="btn big" id="action-download"><i data-lucide="download" class="icon"></i> Unduh BA .docx</a>
+      <a class="btn secondary big" id="action-edit"><i data-lucide="edit-3" class="icon"></i> Edit Laporan</a>
       <button type="button" class="btn danger big" id="action-delete"><i data-lucide="trash-2" class="icon"></i> Hapus Laporan</button>
     </div>
   </div>
@@ -113,6 +116,7 @@
 <div id="context-menu" class="context-menu" hidden>
   <div class="context-item" id="ctx-print"><i data-lucide="printer" class="icon"></i> Print Laporan</div>
   <a class="context-item" id="ctx-download"><i data-lucide="download" class="icon"></i> Unduh BA (.docx)</a>
+  <a class="context-item" id="ctx-edit"><i data-lucide="edit-3" class="icon"></i> Edit Laporan</a>
   <div class="context-item danger" id="ctx-delete"><i data-lucide="trash-2" class="icon"></i> Hapus Laporan</div>
 </div>
 <script>
@@ -261,6 +265,7 @@ function showActionModal(id, sn) {
   document.getElementById('action-sn').textContent = "Opsi Laporan: " + sn;
   document.getElementById('action-print').href = '/print?ids=' + id;
   document.getElementById('action-download').href = '/report/' + id;
+  document.getElementById('action-edit').href = '/device/' + id + '/edit';
   document.getElementById('action-delete').onclick = () => { closeActionModal(); deleteReport(id, sn); };
   actionModal.hidden = false;
   lucide.createIcons(); // ensure icons in modal render
@@ -285,6 +290,8 @@ function showContextMenu(x, y, id, sn) {
   document.getElementById('ctx-print').onclick = () => { hideContextMenu(); window.open('/print?ids=' + id, '_blank'); };
   document.getElementById('ctx-download').href = '/report/' + id;
   document.getElementById('ctx-download').onclick = () => { hideContextMenu(); };
+  document.getElementById('ctx-edit').href = '/device/' + id + '/edit';
+  document.getElementById('ctx-edit').onclick = () => { hideContextMenu(); };
   document.getElementById('ctx-delete').onclick = () => { hideContextMenu(); deleteReport(id, sn); };
   
   ctxMenu.hidden = false;

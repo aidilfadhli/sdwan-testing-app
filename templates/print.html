@@ -56,9 +56,10 @@
 
 {% for item in reports %}
 {% set r = item.r %}
+{% set v_spec = get_vendor_spec(r['vendor']) %}
 <div class="page">
   <h1>BERITA ACARA UJI FUNGSI PERANGKAT</h1>
-  <h2 class="sub">Fortinet SD-WAN Edge</h2>
+  <h2 class="sub">{{ v_spec['name'] }}</h2>
 
   <h3>I. Identitas Perangkat &amp; Pengujian</h3>
   <table class="identtbl">
@@ -72,7 +73,7 @@
   <h3>II. Checklist Uji Fungsi</h3>
   <table class="checktbl">
     <tr><th class="no">No</th><th>Item Pengujian</th><th>Prosedur / Cara Uji</th><th>Hasil</th><th>Keterangan</th></tr>
-    {% for item2 in CHECKLIST_ITEMS %}
+    {% for item2 in v_spec['items'] %}
     {% set i = loop.index %}
     <tr>
       <td class="no">{{ i }}</td>
@@ -85,7 +86,7 @@
   </table>
 
   <h3>III. Lampiran Dokumentasi Foto</h3>
-  {% for s in PHOTO_SECTIONS %}
+  {% for s in v_spec['photo_sections'] %}
   <div class="photosec">
     <strong>{{ loop.index }}. {{ s.judul }}</strong>
     <div class="photogrid">
@@ -99,16 +100,22 @@
   <h3>IV. Catatan Tambahan</h3>
   <p class="catatan">{{ r['catatan'] }}</p>
 
-  <div class="sigwrap">
-    <div class="sig1">
+  <div class="sigwrap" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; text-align: center; margin-top: 26px;">
+    <div>
       <div class="sigtitle">Petugas Penguji</div>
-      <div class="signame">{{ r['petugas'] }}&nbsp;</div>
+      <div class="signame" style="margin-top: 46px; font-weight: 600; border-top: 1px solid #333; display: inline-block; padding-top: 4px; min-width: 160px;">{{ r['petugas'] or '___________________' }}</div>
     </div>
-    <div class="sigtitle" style="text-align:center; margin-bottom:6px;">Mengetahui / Menyetujui</div>
-    <div class="sigrow">
-      <div><div class="signame">{{ r['saksi'] }}&nbsp;</div></div>
-      <div><div class="signame">{{ r['saksi2'] }}&nbsp;</div></div>
-      <div><div class="signame">{{ r['saksi3'] }}&nbsp;</div></div>
+    <div>
+      <div class="sigtitle">Mengetahui / Saksi (DCS)</div>
+      <div class="signame" style="margin-top: 46px; font-weight: 600; border-top: 1px solid #333; display: inline-block; padding-top: 4px; min-width: 160px;">{{ r['saksi'] or '___________________' }}</div>
+    </div>
+    <div>
+      <div class="sigtitle">Mengetahui / Saksi (DID)</div>
+      <div class="signame" style="margin-top: 46px; font-weight: 600; border-top: 1px solid #333; display: inline-block; padding-top: 4px; min-width: 160px;">{{ r['saksi2'] or '___________________' }}</div>
+    </div>
+    <div>
+      <div class="sigtitle">Mengetahui / Saksi (ECS)</div>
+      <div class="signame" style="margin-top: 46px; font-weight: 600; border-top: 1px solid #333; display: inline-block; padding-top: 4px; min-width: 160px;">{{ r['saksi3'] or '___________________' }}</div>
     </div>
   </div>
 </div>

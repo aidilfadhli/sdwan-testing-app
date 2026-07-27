@@ -1,17 +1,22 @@
 {% extends "base.html" %}
 {% block title %}{{ r['serial_number'] }} — Hasil Uji{% endblock %}
 {% block content %}
+{% set v_spec = get_vendor_spec(r['vendor']) %}
 {% if request.query_params.get('err') == 'pin' %}
 <div class="errbanner"><i data-lucide="x-circle" class="icon"></i> PIN supervisor salah — laporan tidak dihapus.</div>
 {% endif %}
 <div class="detailhead">
   <h1>{{ r['serial_number'] }}
     <span class="badge big {{ 'ok' if r['status']=='PASS' else 'nok' }}">{{ r['status'] }}</span>
+    {% if r['version'] and r['version'] > 1 %}
+    <span class="badge small" style="background:#14315c; color:#fff; font-size:0.8rem;">Versi {{ r['version'] }}</span>
+    {% endif %}
   </h1>
   <div class="actions">
     <a class="btn primary" href="/print?ids={{ r['id'] }}" target="_blank"><i data-lucide="printer" class="icon"></i> Print</a>
     <a class="btn" href="/report/{{ r['id'] }}"><i data-lucide="download" class="icon"></i> Unduh Berita Acara (.docx)</a>
-    <a class="btn" href="/form?sn={{ r['serial_number'] }}"><i data-lucide="refresh-cw" class="icon"></i> Uji Ulang</a>
+    <a class="btn secondary" href="/device/{{ r['id'] }}/edit"><i data-lucide="edit-3" class="icon"></i> Edit Laporan</a>
+    <a class="btn" href="/form?sn={{ r['serial_number'] }}&vendor={{ v_spec['id'] }}&retest_of={{ r['id'] }}"><i data-lucide="refresh-cw" class="icon"></i> Uji Ulang</a>
     <form method="post" action="/device/{{ r['id'] }}/delete" id="detail-delete-form">
       <input type="hidden" name="pin" id="detail-pin-input">
       <button type="button" class="btn danger" onclick="confirmDeleteDetail('{{ r.serial_number }}')"><i data-lucide="trash-2" class="icon"></i> Hapus</button>
@@ -19,9 +24,41 @@
   </div>
 </div>
 
+{% if history and history|length > 1 %}
+<fieldset style="background: #f8f9fa; border: 1px solid #e0e0e0; margin-bottom: 20px;">
+  <legend>Riwayat Pengujian S/N Ini (Total {{ history|length }} Versi)</legend>
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    {% for h in history %}
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #fff; border-radius: 6px; border-left: 3px solid {{ '#1e7d32' if h['status'] == 'PASS' else '#c62828' }}; font-size: 0.88rem;">
+      <div>
+        <strong>Laporan #{{ h['id'] }} — Versi {{ h['version'] or 1 }}</strong>
+        <span style="font-size: 0.8rem; color: #666; margin-left: 8px;">{{ h['tanggal'] }} (Petugas: {{ h['petugas'] or '—' }})</span>
+      </div>
+      <div>
+        <span class="badge small {{ 'ok' if h['status'] == 'PASS' else 'nok' }}">{{ h['status'] }}</span>
+        {% if h['id'] != r['id'] %}
+        <a href="/device/{{ h['id'] }}" class="btn small" style="margin-left: 6px;">Buka</a>
+        {% else %}
+        <span class="hint" style="margin-left: 6px; font-size: 0.75rem; color: #888;">(Sedang Dibuka)</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</fieldset>
+{% endif %}
+
 <fieldset>
-  <legend>Identitas</legend>
+  <legend>Identitas Perangkat & Pengujian</legend>
   <div class="kv-grid">
+    <div class="kv-item">
+      <span class="kv-label">Vendor / Platform</span>
+      <span class="kv-val"><strong style="color: var(--primary);">{{ v_spec['name'] }}</strong></span>
+    </div>
+    <div class="kv-item">
+      <span class="kv-label">Versi Pengujian</span>
+      <span class="kv-val"><strong>Versi {{ r['version'] or 1 }}</strong></span>
+    </div>
     <div class="kv-item">
       <span class="kv-label">Type Device</span>
       <span class="kv-val">{{ r['type_device'] }}</span>
@@ -50,11 +87,11 @@
 </fieldset>
 
 <fieldset>
-  <legend>Checklist</legend>
+  <legend>Checklist Uji Fungsi ({{ v_spec['name'] }})</legend>
   <div class="tablewrap">
   <table>
     <tr><th>No</th><th>Item Pengujian</th><th>Hasil</th><th>Keterangan</th></tr>
-    {% for item in CHECKLIST_ITEMS %}
+    {% for item in v_spec['items'] %}
     {% set i = loop.index %}
     <tr>
       <td>{{ i }}</td><td>{{ item.nama }}</td>
@@ -68,7 +105,7 @@
 
 <fieldset>
   <legend>Dokumentasi Foto</legend>
-  {% for s in PHOTO_SECTIONS %}
+  {% for s in v_spec['photo_sections'] %}
   <div class="photoblock">
     <strong>{{ loop.index }}. {{ s.judul }}</strong>
     <div class="thumbs">
