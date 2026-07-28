@@ -8,7 +8,8 @@
       <i data-lucide="bar-chart-3" class="icon" style="color: var(--primary);"></i>
       Dashboard Analytics & Visualisasi
     </h2>
-    <p class="subtitle">Statistik real-time rasio kelulusan, throughput harian, dan analisis kegagalan pengujian SD-WAN Edge.</p>
+    <p class="subtitle">Statistik real-time rasio kelulusan, throughput harian, dan analisis kegagalan pengujian SD-WAN
+      Edge.</p>
   </div>
 </div>
 
@@ -31,49 +32,58 @@
     <!-- Status Filter -->
     <div class="filter-item">
       <label for="filter-status-select" class="filter-label">Status</label>
-      <select id="filter-status-select" class="filter-select {{ 'has-value' if filter_status and filter_status != 'all' else '' }}" data-filter="status">
-        <option value="all" {{ 'selected' if filter_status == 'all' or not filter_status else '' }}>Semua Status</option>
-        <option value="PASS" {{ 'selected' if filter_status == 'PASS' else '' }}>PASS</option>
-        <option value="FAIL" {{ 'selected' if filter_status == 'FAIL' else '' }}>FAIL</option>
+      <select id="filter-status-select"
+        class="filter-select {{ 'has-value' if filter_status and filter_status != 'all' else '' }}"
+        data-filter="status">
+        <option value="all" {{ 'selected' if filter_status=='all' or not filter_status else '' }}>Semua Status</option>
+        <option value="PASS" {{ 'selected' if filter_status=='PASS' else '' }}>PASS</option>
+        <option value="FAIL" {{ 'selected' if filter_status=='FAIL' else '' }}>FAIL</option>
       </select>
     </div>
 
     <!-- Vendor Filter -->
     <div class="filter-item">
       <label for="filter-vendor-select" class="filter-label">Vendor</label>
-      <select id="filter-vendor-select" class="filter-select {{ 'has-value' if filter_vendor and filter_vendor != 'all' else '' }}" data-filter="vendor">
-        <option value="all" {{ 'selected' if filter_vendor == 'all' or not filter_vendor else '' }}>Semua Vendor</option>
-        <option value="fortinet" {{ 'selected' if filter_vendor == 'fortinet' else '' }}>Fortinet</option>
-        <option value="cisco" {{ 'selected' if filter_vendor == 'cisco' else '' }}>Cisco</option>
-        <option value="velocloud" {{ 'selected' if filter_vendor == 'velocloud' else '' }}>VMware VeloCloud</option>
+      <select id="filter-vendor-select"
+        class="filter-select {{ 'has-value' if filter_vendor and filter_vendor != 'all' else '' }}"
+        data-filter="vendor">
+        <option value="all" {{ 'selected' if filter_vendor=='all' or not filter_vendor else '' }}>Semua Vendor</option>
+        <option value="fortinet" {{ 'selected' if filter_vendor=='fortinet' else '' }}>Fortinet</option>
+        <option value="cisco" {{ 'selected' if filter_vendor=='cisco' else '' }}>Cisco</option>
+        <option value="velocloud" {{ 'selected' if filter_vendor=='velocloud' else '' }}>VMware VeloCloud</option>
       </select>
     </div>
 
     <!-- Tanggal Filter -->
     <div class="filter-item">
       <label for="filter-date-select" class="filter-label">Tanggal</label>
-      <select id="filter-date-select" class="filter-select {{ 'has-value' if filter_date_range and filter_date_range != 'all' else '' }}" data-filter="date_range">
-        <option value="all" {{ 'selected' if filter_date_range == 'all' or not filter_date_range else '' }}>Semua Tanggal</option>
-        <option value="today" {{ 'selected' if filter_date_range == 'today' else '' }}>Hari Ini</option>
-        <option value="7days" {{ 'selected' if filter_date_range == '7days' else '' }}>7 Hari Terakhir</option>
-        <option value="30days" {{ 'selected' if filter_date_range == '30days' else '' }}>30 Hari Terakhir</option>
+      <select id="filter-date-select"
+        class="filter-select {{ 'has-value' if filter_date_range and filter_date_range != 'all' else '' }}"
+        data-filter="date_range">
+        <option value="all" {{ 'selected' if filter_date_range=='all' or not filter_date_range else '' }}>Semua Tanggal
+        </option>
+        <option value="today" {{ 'selected' if filter_date_range=='today' else '' }}>Hari Ini</option>
+        <option value="7days" {{ 'selected' if filter_date_range=='7days' else '' }}>7 Hari Terakhir</option>
+        <option value="30days" {{ 'selected' if filter_date_range=='30days' else '' }}>30 Hari Terakhir</option>
       </select>
     </div>
 
     <!-- Model Filter -->
     <div class="filter-item">
       <label for="filter-model-select" class="filter-label">Model</label>
-      <select id="filter-model-select" class="filter-select {{ 'has-value' if filter_model and filter_model != 'all' else '' }}" data-filter="model">
-        <option value="all" {{ 'selected' if filter_model == 'all' or not filter_model else '' }}>Semua Model</option>
+      <select id="filter-model-select"
+        class="filter-select {{ 'has-value' if filter_model and filter_model != 'all' else '' }}" data-filter="model">
+        <option value="all" {{ 'selected' if filter_model=='all' or not filter_model else '' }}>Semua Model</option>
         {% if analytics and analytics['available_models'] %}
         {% for m in analytics['available_models'] %}
-        <option value="{{ m }}" {{ 'selected' if filter_model == m else '' }}>{{ m }}</option>
+        <option value="{{ m }}" {{ 'selected' if filter_model==m else '' }}>{{ m }}</option>
         {% endfor %}
         {% endif %}
       </select>
     </div>
 
-    {% if (filter_status and filter_status != 'all') or (filter_vendor and filter_vendor != 'all') or (filter_date_range and filter_date_range != 'all') or (filter_model and filter_model != 'all') %}
+    {% if (filter_status and filter_status != 'all') or (filter_vendor and filter_vendor != 'all') or (filter_date_range
+    and filter_date_range != 'all') or (filter_model and filter_model != 'all') %}
     <div class="filter-item filter-reset-wrap">
       <a href="/analytics" class="btn danger small filter-reset-btn" title="Reset semua filter">
         <i data-lucide="rotate-ccw" class="icon small"></i> Reset
@@ -132,7 +142,8 @@
           <div class="failed-bar-bg">
             {% set total_devs = stats['total'] or 1 %}
             {% set v_pct = (item['count'] / total_devs * 100) | round | int %}
-            <div class="failed-bar-fill" style="width: {{ v_pct }}%; background: var(--primary);"></div>
+            <div class="failed-bar-fill"
+              style="--bar-width: {{ v_pct }}%; width: var(--bar-width); background: var(--primary);"></div>
           </div>
         </li>
         {% endfor %}

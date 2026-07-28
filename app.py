@@ -204,106 +204,46 @@ def server_url(request: Request) -> str:
     return f"{request.url.scheme}://{get_lan_ip()}:{port}"
 
 
-def add_watermark(img: Image.Image, watermark_data: str | list[str]) -> Image.Image:
-    """Tambahkan timestamp kamera (SN, Date, Time, Location) dengan outline drop-shadow tanpa box background."""
-    if not watermark_data:
+def add_watermark(img: Image.Image, text: str) -> Image.Image:
+    """Tambahkan pita semi-transparan dengan teks watermark di sudut kanan bawah foto."""
+    if not text or not text.strip():
         return img
     try:
         from PIL import ImageDraw, ImageFont
-        from datetime import datetime
-
         img_rgba = img.convert("RGBA")
         width, height = img_rgba.size
-
-        # Parse inputs into structured fields
-        sn_val, date_val, time_val, loc_val = "", "", "", ""
-        if isinstance(watermark_data, list):
-            for item in watermark_data:
-                if item.startswith("SN:") or item.startswith("S/N:"):
-                    sn_val = item.replace("S/N:", "").replace("SN:", "").strip()
-                elif item.startswith("Date:"):
-                    date_val = item.replace("Date:", "").strip()
-                elif item.startswith("Time:"):
-                    time_val = item.replace("Time:", "").strip()
-                elif item.startswith("Location:"):
-                    loc_val = item.replace("Location:", "").strip()
-        elif isinstance(watermark_data, str):
-            if "|" in watermark_data:
-                parts = [p.strip() for p in watermark_data.split("|")]
-                sn_val = parts[0].replace("S/N:", "").replace("SN:", "").strip() if len(parts) >= 1 else ""
-                date_val = parts[1].strip() if len(parts) >= 2 else datetime.now().strftime("%Y-%m-%d")
-                loc_val = parts[2].strip() if len(parts) >= 3 else ""
-                time_val = datetime.now().strftime("%H:%M:%S")
-            else:
-                sn_val = watermark_data
-
-        if not date_val:
-            date_val = datetime.now().strftime("%Y-%m-%d")
-        if not time_val:
-            time_val = datetime.now().strftime("%H:%M:%S")
-
-        # 3 clean, structured lines
-        lines = []
-        if sn_val:
-            lines.append(f"SN: {sn_val}")
-        lines.append(f"{date_val}  {time_val}")
-        if loc_val:
-            lines.append(f"{loc_val}")
-
-        if not lines:
-            return img
-
-        # Camera Timestamp Font scaling (2.5% of image height)
-        font_size = max(15, int(height * 0.025))
+        font_size = max(13, int(height * 0.032))
         try:
-            font = ImageFont.truetype("arialbd.ttf", font_size)
+            font = ImageFont.truetype("arial.ttf", font_size)
         except Exception:
-            try:
-                font = ImageFont.truetype("arial.ttf", font_size)
-            except Exception:
-                font = ImageFont.load_default()
-
+            font = ImageFont.load_default()
+            
         draw = ImageDraw.Draw(img_rgba)
-        line_heights = []
-        for line in lines:
-            bbox = draw.textbbox((0, 0), line, font=font)
-            line_heights.append(bbox[3] - bbox[1])
-
-        single_line_h = max(line_heights) if line_heights else font_size
-        line_spacing = max(4, int(font_size * 0.28))
-
-        total_text_h = sum(line_heights) + (line_spacing * (len(lines) - 1))
-
-        # Position at bottom-left corner with generous margin
-        margin_x = max(18, int(width * 0.035))
-        margin_y = max(20, int(height * 0.03))
-
-        x = margin_x
-        y = max(0, height - margin_y - total_text_h)
-
-        stroke_w = max(2, int(font_size * 0.12))
-
-        # Draw camera timestamp text with heavy dark drop-shadow outline
-        current_y = y
-        for line in lines:
-            fill_color = (255, 215, 0, 255) if line.startswith("SN:") else (255, 255, 255, 255)
-            draw.text(
-                (x, current_y),
-                line,
-                fill=fill_color,
-                font=font,
-                stroke_width=stroke_w,
-                stroke_fill=(0, 0, 0, 245)
-            )
-            current_y += single_line_h + line_spacing
-
+        bbox = draw.textbbox((0, 0), text, font=font)
+        text_w = bbox[2] - bbox[0]
+        text_h = bbox[3] - bbox[1]
+        
+        padding = max(6, int(font_size * 0.4))
+        margin = max(6, int(font_size * 0.4))
+        
+        x2 = width - margin
+        y2 = height - margin
+        x1 = max(0, x2 - text_w - padding * 2)
+        y1 = max(0, y2 - text_h - padding * 2)
+        
+        overlay = Image.new("RGBA", img_rgba.size, (255, 255, 255, 0))
+        draw_ov = ImageDraw.Draw(overlay)
+        draw_ov.rectangle([x1, y1, x2, y2], fill=(15, 23, 42, 185))
+        
+        img_rgba = Image.alpha_composite(img_rgba, overlay)
+        draw_final = ImageDraw.Draw(img_rgba)
+        draw_final.text((x1 + padding, y1 + padding), text, fill=(255, 255, 255, 255), font=font)
         return img_rgba.convert("RGB")
-    except Exception as err:
-        print("Watermark error:", err)
+    except Exception:
         return img.convert("RGB")
 
 
-def save_photo(upload: UploadFile, dest_dir: Path, name_base: str, watermark_text: str | list[str] = "") -> str | None:
+def save_photo(upload: UploadFile, dest_dir: Path, name_base: str, watermark_text: str = "") -> str | None:
     raw = upload.file.read()
     if not raw:
         return None
@@ -608,13 +548,7 @@ async def submit(request: Request):
         )
         report_id = cur.lastrowid
         dest = evidence_dir(report_id, sn)
-        cur_time = datetime.now().strftime("%H:%M:%S")
-        wm_text = [
-            f"SN: {sn}",
-            f"Date: {val('tanggal') or date.today().isoformat()}",
-            f"Time: {cur_time}",
-            f"Location: {val('lokasi') or ''}"
-        ]
+        wm_text = f"S/N: {sn} | {val('tanggal') or date.today().isoformat()} | {val('lokasi')}"
 
         for section in vendor_spec["photo_sections"]:
             uploads = form_data.getlist(f"photo_{section['key']}")
@@ -793,13 +727,7 @@ async def update_report(request: Request, report_id: int):
         )
 
         dest = evidence_dir(report_id, sn)
-        cur_time = datetime.now().strftime("%H:%M:%S")
-        wm_text = [
-            f"SN: {sn}",
-            f"Date: {val('tanggal') or date.today().isoformat()}",
-            f"Time: {cur_time}",
-            f"Location: {val('lokasi') or ''}"
-        ]
+        wm_text = f"S/N: {sn} | {val('tanggal') or date.today().isoformat()} | {val('lokasi')}"
 
         # Handle Direct Photo Replacements (replace_photo_{id})
         photos_list = conn.execute("SELECT id, section, filename FROM photos WHERE report_id=?", (report_id,)).fetchall()
