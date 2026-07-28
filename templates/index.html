@@ -187,24 +187,24 @@
       </div>
 
       {% if current_page > 1 %}
-      <button type="button" class="btn small" data-page="{{ current_page - 1 }}" onclick="changePage(this.dataset.page)">
-        <i data-lucide="chevron-left" class="icon small"></i> Sebelum
+      <button type="button" class="btn small" data-page="{{ current_page - 1 }}" onclick="changePage(this.dataset.page)" title="Sebelumnya">
+        <i data-lucide="chevron-left" class="icon small"></i> <span class="btn-text">Sebelum</span>
       </button>
       {% else %}
-      <button type="button" class="btn small" disabled>
-        <i data-lucide="chevron-left" class="icon small"></i> Sebelum
+      <button type="button" class="btn small" disabled title="Sebelumnya">
+        <i data-lucide="chevron-left" class="icon small"></i> <span class="btn-text">Sebelum</span>
       </button>
       {% endif %}
 
       <span class="page-badge">Hal {{ current_page }} / {{ total_pages }}</span>
 
       {% if current_page < total_pages %}
-      <button type="button" class="btn small" data-page="{{ current_page + 1 }}" onclick="changePage(this.dataset.page)">
-        Berikut <i data-lucide="chevron-right" class="icon small"></i>
+      <button type="button" class="btn small" data-page="{{ current_page + 1 }}" onclick="changePage(this.dataset.page)" title="Berikutnya">
+        <span class="btn-text">Berikut</span> <i data-lucide="chevron-right" class="icon small"></i>
       </button>
       {% else %}
-      <button type="button" class="btn small" disabled>
-        Berikut <i data-lucide="chevron-right" class="icon small"></i>
+      <button type="button" class="btn small" disabled title="Berikutnya">
+        <span class="btn-text">Berikut</span> <i data-lucide="chevron-right" class="icon small"></i>
       </button>
       {% endif %}
     </div>
