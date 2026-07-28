@@ -364,6 +364,10 @@
 
         <!-- Rotate & Reverse Tools -->
         <div class="tool-group">
+          <button type="button" class="tool-btn" onclick="retakePhoto()" title="Ambil Ulang Foto">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            <span>Retake</span>
+          </button>
           <button type="button" class="tool-btn" onclick="rotatePhoto90()" title="Putar Foto 90°">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
@@ -428,6 +432,23 @@
     let drawColor = '#ed1c24';
     let lastCoords = { x: 0, y: 0 };
 
+    async function editExistingPhoto(photoUrl, inputElement) {
+      if (!inputElement.files || inputElement.files.length === 0) {
+        try {
+          const response = await fetch(photoUrl);
+          const blob = await response.blob();
+          const file = new File([blob], "existing.jpg", { type: blob.type });
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          inputElement.files = dt.files;
+        } catch(e) {
+          console.error("Failed to load existing image for editing", e);
+          return;
+        }
+      }
+      openPhotoEditorForInput(inputElement);
+    }
+
     function openPhotoEditorForInput(input) {
       if (!input.files || !input.files[0]) return;
       currentFileInput = input;
@@ -460,6 +481,13 @@
       if (modal) modal.hidden = true;
       isDrawingMode = false;
       updateDrawBtnState();
+      
+      if (currentFileInput) {
+        let container = currentFileInput.nextElementSibling;
+        if (!container || !container.classList.contains('preview-container')) {
+          currentFileInput.value = "";
+        }
+      }
     }
 
     function resetPhotoEdits() {
@@ -467,6 +495,14 @@
       mainCanvas.width = originalImageObj.naturalWidth || originalImageObj.width;
       mainCanvas.height = originalImageObj.naturalHeight || originalImageObj.height;
       mainCtx.drawImage(originalImageObj, 0, 0);
+    }
+
+    function retakePhoto() {
+      if (currentFileInput) {
+        closePhotoEditor();
+        currentFileInput.value = "";
+        currentFileInput.click();
+      }
     }
 
     function rotatePhoto90() {
@@ -586,12 +622,99 @@
           console.warn('DataTransfer fallback:', err);
         }
 
-        let img = currentFileInput.nextElementSibling;
-        if (!img || img.tagName !== 'IMG') {
-          img = document.createElement('img');
-          img.className = 'photopreview';
-          currentFileInput.after(img);
+        let container = currentFileInput.nextElementSibling;
+        if (!container || !container.classList.contains('preview-container')) {
+          // If there is an old img tag, remove it
+          if (container && container.tagName === 'IMG') {
+            container.remove();
+            container = null;
+          }
+          container = document.createElement('div');
+          container.className = 'preview-container';
+          container.style.position = 'relative';
+          container.style.display = 'inline-block';
+          container.style.marginTop = '10px';
+          container.style.width = '100%';
+          container.style.maxWidth = '200px';
+
+          const newImg = document.createElement('img');
+          newImg.className = 'photopreview';
+          newImg.style.width = '100%';
+          newImg.style.maxHeight = '200px';
+          newImg.style.objectFit = 'cover';
+          newImg.style.display = 'block';
+          newImg.style.borderRadius = 'var(--radius)';
+          container.appendChild(newImg);
+
+          const actions = document.createElement('div');
+          actions.style.position = 'absolute';
+          actions.style.top = '8px';
+          actions.style.right = '8px';
+          actions.style.display = 'flex';
+          actions.style.gap = '6px';
+
+          const editBtn = document.createElement('button');
+          editBtn.type = 'button';
+          editBtn.title = 'Edit Foto';
+          editBtn.style.background = 'rgba(37,99,235,0.9)';
+          editBtn.style.color = 'white';
+          editBtn.style.width = '32px';
+          editBtn.style.height = '32px';
+          editBtn.style.padding = '0';
+          editBtn.style.border = 'none';
+          editBtn.style.borderRadius = '50%';
+          editBtn.style.display = 'flex';
+          editBtn.style.alignItems = 'center';
+          editBtn.style.justifyContent = 'center';
+          editBtn.style.cursor = 'pointer';
+          editBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+          editBtn.style.transition = 'background-color 0.2s';
+          editBtn.onmouseover = () => editBtn.style.backgroundColor = 'rgba(29,78,216,1)';
+          editBtn.onmouseout = () => editBtn.style.backgroundColor = 'rgba(37,99,235,0.9)';
+          editBtn.innerHTML = '<i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>';
+          
+          // We must capture the exact input reference
+          const targetInput = currentFileInput;
+          editBtn.onclick = function(e) { 
+            e.preventDefault(); 
+            openPhotoEditorForInput(targetInput); 
+          };
+
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.title = 'Hapus Foto';
+          delBtn.style.background = 'rgba(220,38,38,0.9)';
+          delBtn.style.color = 'white';
+          delBtn.style.width = '32px';
+          delBtn.style.height = '32px';
+          delBtn.style.padding = '0';
+          delBtn.style.border = 'none';
+          delBtn.style.borderRadius = '50%';
+          delBtn.style.display = 'flex';
+          delBtn.style.alignItems = 'center';
+          delBtn.style.justifyContent = 'center';
+          delBtn.style.cursor = 'pointer';
+          delBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+          delBtn.style.transition = 'background-color 0.2s';
+          delBtn.onmouseover = () => delBtn.style.backgroundColor = 'rgba(185,28,28,1)';
+          delBtn.onmouseout = () => delBtn.style.backgroundColor = 'rgba(220,38,38,0.9)';
+          delBtn.innerHTML = '<i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>';
+          delBtn.onclick = function(e) {
+            e.preventDefault();
+            targetInput.value = "";
+            container.remove();
+          };
+
+          actions.appendChild(editBtn);
+          actions.appendChild(delBtn);
+          container.appendChild(actions);
+
+          targetInput.after(container);
+
+          if (window.lucide) lucide.createIcons();
         }
+
+        const img = container.querySelector('img');
         img.src = URL.createObjectURL(editedFile);
 
         closePhotoEditor();

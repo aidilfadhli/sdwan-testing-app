@@ -77,24 +77,21 @@
     <div class="existing-photos" style="display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0;">
       {% for p in photos_list %}
       {% if p['section'] == s['key'] %}
-      <div class="photo-thumb-card" id="card-photo-{{ p['id'] }}" style="position: relative; border: 1px solid #ccc; border-radius: 8px; padding: 8px; background: #fff; width: 160px; text-align: center; transition: all 0.2s;">
-        <div style="position: relative; height: 105px; overflow: hidden; border-radius: 6px; background: #eee;">
-          <img id="img-preview-{{ p['id'] }}" src="/evidence/{{ folder }}/{{ p['filename'] }}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
-          <span id="badge-replaced-{{ p['id'] }}" hidden style="position: absolute; top: 4px; right: 4px; background: #1e7d32; color: #fff; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Diganti</span>
-        </div>
-
-        <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px;">
-          <!-- Button Ganti Foto Direct -->
-          <label class="btn small" style="margin: 0; font-size: 0.78rem; cursor: pointer; background: #eef2f8; color: #14315c; border: 1px solid #c5d4ea; display: flex; align-items: center; justify-content: center; gap: 4px;">
-            <i data-lucide="refresh-cw" style="width: 12px; height: 12px;"></i> Ganti Foto Ini
-            <input type="file" name="replace_photo_{{ p.id }}" accept="image/*" capture="environment" style="display: none;" onchange="previewReplacePhoto(this, '{{ p.id }}')">
-          </label>
-
-          <!-- Checkbox Hapus -->
-          <label style="display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 0.75rem; color: #c62828; cursor: pointer; margin-top: 2px;">
-            <input type="checkbox" name="delete_photo_ids" value="{{ p.id }}" onchange="toggleDeletePhotoCard(this, '{{ p.id }}')">
-            <span>Hapus foto</span>
-          </label>
+      <div class="photo-upload-wrapper" id="card-photo-{{ p['id'] }}" style="position: relative; display: inline-block; margin-right: 12px; margin-bottom: 12px;">
+        <input type="file" name="replace_photo_{{ p.id }}" id="input-replace-{{ p['id'] }}" accept="image/*" style="display: none;" onchange="previewReplacePhoto(this, '{{ p.id }}')">
+        <div class="preview-container" style="position: relative; display: inline-block; width: 100%; max-width: 200px; margin-top: 10px;">
+          <img class="photopreview" id="img-preview-{{ p['id'] }}" src="/evidence/{{ folder }}/{{ p['filename'] }}" style="width: 100%; max-height: 200px; object-fit: cover; display: block; border-radius: var(--radius); border: 1px solid var(--border-color);">
+          <span id="badge-replaced-{{ p['id'] }}" hidden style="position: absolute; bottom: 8px; left: 8px; background: rgba(30,125,50,0.9); color: #fff; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Diganti</span>
+          
+          <div style="position: absolute; top: 8px; right: 8px; display: flex; gap: 6px;">
+            <button type="button" title="Edit Foto" style="background: rgba(37,99,235,0.9); color: white; width: 32px; height: 32px; padding: 0; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='rgba(29,78,216,1)'" onmouseout="this.style.backgroundColor='rgba(37,99,235,0.9)'" onclick="editExistingPhoto('/evidence/{{ folder }}/{{ p.filename }}', document.getElementById('input-replace-{{ p.id }}'))">
+              <i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>
+            </button>
+            <label id="lbl-del-{{ p.id }}" title="Hapus Foto" style="margin: 0; background: rgba(220,38,38,0.9); color: white; width: 32px; height: 32px; padding: 0; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='rgba(185,28,28,1)'" onmouseout="this.style.backgroundColor='rgba(220,38,38,0.9)'">
+              <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+              <input type="checkbox" name="delete_photo_ids" value="{{ p.id }}" style="display: none;" onchange="toggleDeletePhotoCard(this, '{{ p.id }}')">
+            </label>
+          </div>
         </div>
       </div>
       {% endif %}
@@ -136,16 +133,8 @@ function previewReplacePhoto(input, photoId) {
 
 function toggleDeletePhotoCard(checkbox, photoId) {
   const card = document.getElementById('card-photo-' + photoId);
-  if (card) {
-    if (checkbox.checked) {
-      card.style.opacity = '0.45';
-      card.style.filter = 'grayscale(100%)';
-      card.style.borderColor = '#c62828';
-    } else {
-      card.style.opacity = '1';
-      card.style.filter = 'none';
-      card.style.borderColor = '#ccc';
-    }
+  if (card && checkbox.checked) {
+    card.style.display = 'none';
   }
 }
 

@@ -162,6 +162,80 @@ function renderTopFailedItems(failedItems) {
 
 function bindFilterChips() {
   const filterSelects = document.querySelectorAll('.filter-select[data-filter]');
+  
+  // Custom UI initialization
+  filterSelects.forEach(select => {
+    // Hide native select
+    select.style.display = 'none';
+
+    // Create wrapper
+    const wrapper = document.createElement('div');
+    wrapper.className = 'custom-select-wrapper';
+    if (select.classList.contains('has-value')) {
+      wrapper.classList.add('has-value');
+    }
+    
+    // Create trigger
+    const trigger = document.createElement('div');
+    trigger.className = 'custom-select-trigger';
+    const textSpan = document.createElement('span');
+    textSpan.className = 'custom-select-text';
+    const selectedOption = select.options[select.selectedIndex];
+    textSpan.textContent = selectedOption ? selectedOption.text : '';
+    trigger.appendChild(textSpan);
+    trigger.innerHTML += '<i data-lucide="chevron-down" class="icon small" style="margin-left: 8px;"></i>';
+    wrapper.appendChild(trigger);
+    
+    // Create options list
+    const optionsList = document.createElement('ul');
+    optionsList.className = 'custom-select-options';
+    optionsList.style.listStyle = 'none';
+    optionsList.style.margin = '0';
+    optionsList.style.padding = '0';
+    
+    Array.from(select.options).forEach(opt => {
+      const li = document.createElement('li');
+      li.className = 'custom-select-option';
+      if (opt.selected) li.classList.add('selected');
+      li.dataset.value = opt.value;
+      li.textContent = opt.text;
+      li.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (select.value !== opt.value) {
+          select.value = opt.value;
+          select.dispatchEvent(new Event('change'));
+        }
+        wrapper.classList.remove('open');
+      });
+      optionsList.appendChild(li);
+    });
+    wrapper.appendChild(optionsList);
+    
+    // Insert wrapper into DOM
+    select.parentNode.insertBefore(wrapper, select);
+    wrapper.insertBefore(select, wrapper.firstChild);
+    
+    // Handle toggle
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = wrapper.classList.contains('open');
+      document.querySelectorAll('.custom-select-wrapper').forEach(w => w.classList.remove('open'));
+      if (!isOpen) wrapper.classList.add('open');
+    });
+  });
+
+  // Global close
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.custom-select-wrapper')) {
+      document.querySelectorAll('.custom-select-wrapper').forEach(w => w.classList.remove('open'));
+    }
+  });
+
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
+
+  // Original filtering behavior
   filterSelects.forEach(select => {
     select.addEventListener('change', () => {
       const filterKey = select.getAttribute('data-filter');
@@ -173,7 +247,6 @@ function bindFilterChips() {
       } else {
         url.searchParams.set(filterKey, filterVal);
       }
-      // Reset to page 1 when filter or limit changes
       url.searchParams.delete('page');
 
       window.location.href = url.toString();
