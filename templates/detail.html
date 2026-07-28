@@ -15,8 +15,19 @@
   <div class="actions">
     <a class="btn primary" href="/print?ids={{ r['id'] }}" target="_blank"><i data-lucide="printer" class="icon"></i>
       Print</a>
+    <a class="btn" href="/print?ids={{ r['id'] }}&download=pdf" target="_blank"
+      style="background: #e65100; color: #fff;"><i data-lucide="file-text" class="icon"></i> Simpan PDF</a>
     <a class="btn" href="/report/{{ r['id'] }}"><i data-lucide="download" class="icon"></i> Unduh Berita Acara
       (.docx)</a>
+    {% if history and history|length > 1 %}
+    <a class="btn primary" href="/device/{{ r['id'] }}/compare" style="background: #0284c7; color: #fff;"><i
+        data-lucide="git-compare" class="icon"></i> Bandingkan Versi</a>
+    {% else %}
+    <button type="button" class="btn" disabled
+      title="Perangkat ini baru memiliki 1 versi pengujian. Klik 'Uji Ulang' untuk membuat Versi 2 dan melakukan komparasi."
+      style="opacity: 0.55; cursor: not-allowed;"><i data-lucide="git-compare" class="icon"></i> Bandingkan
+      Versi</button>
+    {% endif %}
     <a class="btn secondary" href="/device/{{ r['id'] }}/edit"><i data-lucide="edit-3" class="icon"></i> Edit
       Laporan</a>
     <a class="btn" href="/form?sn={{ r['serial_number'] }}&vendor={{ v_spec['id'] }}&retest_of={{ r['id'] }}"><i
@@ -31,7 +42,11 @@
 
 {% if history and history|length > 1 %}
 <fieldset style="background: #f8f9fa; border: 1px solid #e0e0e0; margin-bottom: 20px;">
-  <legend>Riwayat Pengujian S/N Ini (Total {{ history|length }} Versi)</legend>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+    <legend style="margin-bottom: 0;">Riwayat Pengujian S/N Ini (Total {{ history|length }} Versi)</legend>
+    <a href="/device/{{ r['id'] }}/compare" class="btn small primary" style="background: #14315c; color: #fff;"><i
+        data-lucide="git-compare" class="icon small"></i> Bandingkan Versi</a>
+  </div>
   <div style="display: flex; flex-direction: column; gap: 8px;">
     {% for h in history %}
     {% if h['status'] == 'PASS' %}

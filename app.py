@@ -601,6 +601,59 @@ def device(request: Request, report_id: int):
     )
 
 
+@app.get("/device/{report_id}/compare")
+def compare_report(request: Request, report_id: int, v1: int = 0, v2: int = 0):
+    conn = get_conn()
+    current_report = report_row(conn, report_id)
+    if current_report is None:
+        conn.close()
+        return RedirectResponse("/", status_code=303)
+        
+    sn = current_report["serial_number"]
+    all_reports = conn.execute(
+        "SELECT * FROM reports WHERE serial_number=? ORDER BY version ASC, id ASC",
+        (sn,)
+    ).fetchall()
+    
+    if len(all_reports) < 2:
+        conn.close()
+        return RedirectResponse(f"/device/{report_id}", status_code=303)
+        
+    report1 = None
+    report2 = None
+    
+    if v1 and v2:
+        report1 = next((r for r in all_reports if r["id"] == v1), None)
+        report2 = next((r for r in all_reports if r["id"] == v2), None)
+        
+    if not report1 or not report2:
+        # Default: Compare current report with the one preceding it
+        report2 = current_report
+        prev_reports = [r for r in all_reports if r["id"] != current_report["id"]]
+        report1 = prev_reports[-1] if prev_reports else all_reports[0]
+        
+    photos1 = photos_for(conn, report1["id"])
+    photos2 = photos_for(conn, report2["id"])
+    folder1 = evidence_dir(report1["id"], sn).name
+    folder2 = evidence_dir(report2["id"], sn).name
+    
+    conn.close()
+    
+    return templates.TemplateResponse(
+        request, "compare.html",
+        {
+            "sn": sn,
+            "all_reports": all_reports,
+            "r1": report1,
+            "r2": report2,
+            "photos1": photos1,
+            "photos2": photos2,
+            "folder1": folder1,
+            "folder2": folder2,
+        }
+    )
+
+
 @app.get("/device/{report_id}/edit")
 def edit_report(request: Request, report_id: int):
     conn = get_conn()

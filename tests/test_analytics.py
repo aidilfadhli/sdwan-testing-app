@@ -38,6 +38,12 @@ class TestAnalytics(unittest.TestCase):
             cisco_data = get_analytics_data(vendor="cisco")
             self.assertGreaterEqual(cisco_data["summary"]["total"], 1)
 
+            # Test officer and model defect stats
+            self.assertIn("officer_stats", data)
+            self.assertIn("model_stats", data)
+            self.assertIsInstance(data["officer_stats"], list)
+            self.assertIsInstance(data["model_stats"], list)
+
             # Test date range filters (today, 7days, 30days)
             for dr in ("today", "7days", "30days"):
                 dr_data = get_analytics_data(date_range=dr)

@@ -5,125 +5,208 @@
 <title>Cetak Berita Acara ({{ reports|length }} laporan)</title>
 <style>
   * { box-sizing: border-box; }
-  body { font-family: -apple-system, "Segoe UI", Arial, sans-serif; color: #111;
-         margin: 0; background: #ccc; }
+  body { font-family: Arial, "Helvetica Neue", Helvetica, sans-serif; color: #000;
+         margin: 0; background: #e2e8f0; font-size: 10pt; line-height: 1.4; }
   .toolbar { position: sticky; top: 0; background: #14315c; color: #fff;
              padding: 10px 16px; display: flex; justify-content: space-between;
-             align-items: center; z-index: 10; }
+             align-items: center; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
   .toolbar button { background: #fff; color: #14315c; border: none; padding: 8px 16px;
              border-radius: 6px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
   .icon { width: 16px; height: 16px; stroke-width: 2.2px; vertical-align: middle; }
-  .page { background: #fff; max-width: 850px; margin: 16px auto; padding: 18mm 16mm;
-          box-shadow: 0 1px 6px rgba(0,0,0,.3); }
-  .page + .page { break-before: page; page-break-before: always; }
-  h1 { font-size: 1.15rem; text-align: center; margin: 0; }
-  h2.sub { font-size: 1rem; text-align: center; margin: 2px 0 14px; font-weight: 600; }
-  h3 { font-size: .95rem; background: #eef2f8; padding: 5px 8px; margin: 16px 0 6px; }
-  table { border-collapse: collapse; width: 100%; margin-bottom: 4px; }
-  td, th { border: 1px solid #999; padding: 5px 7px; font-size: .82rem; vertical-align: top; }
-  .identtbl td:first-child { width: 32%; font-weight: 600; background: #f7f8fa; }
-  .checktbl th { background: #f7f8fa; }
-  .checktbl td.no { width: 4%; text-align: center; }
-  .checktbl td.hasil { width: 9%; text-align: center; font-weight: 700; }
-  .ok { color: #1e7d32; } .nok { color: #c62828; }
-  .photosec { margin-bottom: 10px; }
-  .photosec strong { display: block; font-size: .85rem; margin-bottom: 4px; }
-  .photogrid { display: flex; flex-wrap: wrap; gap: 6px; }
-  .photogrid img { height: 150px; border: 1px solid #ccc; object-fit: cover; }
-  .nophoto { color: #888; font-size: .8rem; font-style: italic; }
-  .catatan { font-size: .85rem; min-height: 20px; }
-  .sigwrap { margin-top: 26px; }
-  .sig1 { text-align: center; margin-bottom: 30px; }
-  .sigrow { display: flex; justify-content: space-around; text-align: center; }
-  .sigrow div { flex: 1; }
-  .signame { margin-top: 46px; font-weight: 600; border-top: 1px solid #333;
-             display: inline-block; padding-top: 4px; min-width: 160px; }
-  .sigtitle { font-size: .85rem; }
+  
+  .page { background: #fff; width: 210mm; min-height: 297mm; margin: 20px auto; padding: 20mm 20mm;
+          box-shadow: 0 2px 10px rgba(0,0,0,.15); }
+  .page + .page { page-break-before: always; break-before: page; }
+  
+  .doc-title { font-size: 13pt; text-align: center; margin: 0 0 2px 0; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; }
+  .doc-subtitle { font-size: 11pt; text-align: center; margin: 0 0 16px 0; font-weight: bold; color: #333; }
+  
+  .sec-title { font-size: 10.5pt; font-weight: bold; background: #f1f5f9; padding: 6px 8px; margin: 16px 0 8px 0; border: 1px solid #cbd5e1; border-left: 4px solid #14315c; }
+  
+  table { border-collapse: collapse; width: 100%; margin-bottom: 8px; font-size: 9.5pt; }
+  td, th { border: 1px solid #64748b; padding: 6px 8px; vertical-align: top; }
+  
+  /* Identitas Table (3 Columns matching Word docx Table 0) */
+  .identtbl td:nth-child(1) { width: 30%; font-weight: bold; background: #f8fafc; }
+  .identtbl td:nth-child(2) { width: 3%; text-align: center; font-weight: bold; background: #f8fafc; }
+  .identtbl td:nth-child(3) { width: 67%; font-weight: bold; }
+  
+  /* Checklist Table */
+  .checktbl th { background: #f1f5f9; font-weight: bold; text-align: center; }
+  .checktbl td.no { width: 5%; text-align: center; }
+  .checktbl td.item-name { width: 25%; font-weight: 600; }
+  .checktbl td.prosedur { width: 45%; color: #334155; font-size: 9pt; }
+  .checktbl td.hasil { width: 10%; text-align: center; font-weight: bold; font-size: 10pt; }
+  .checktbl td.ket { width: 15%; }
+  
+  .ok { color: #1e7d32; }
+  .nok { color: #c62828; }
+  
+  /* Photo Sections */
+  .photosec { margin-bottom: 12px; }
+  .photosec strong { display: block; font-size: 9.5pt; margin-bottom: 4px; color: #1e293b; }
+  .photobox { border: 1px solid #94a3b8; padding: 8px; text-align: center; background: #fafafa; min-height: 120px; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px; }
+  .photobox img { max-width: 100%; max-height: 240px; border: 1px solid #cbd5e1; object-fit: contain; }
+  .nophoto { color: #94a3b8; font-size: 9pt; font-style: italic; }
+  
+  .catatan-box { border: 1px solid #64748b; padding: 10px; min-height: 48px; background: #fff; font-size: 9.5pt; }
+  
+  /* 2x2 Grid Signature Table matching Word docx Table 9 */
+  .sigtbl { margin-top: 20px; border-collapse: collapse; }
+  .sigtbl td { width: 50%; height: 110px; text-align: center; vertical-align: top; padding: 10px; border: 1px solid #64748b; }
+  .sigtitle { font-weight: bold; font-size: 9.5pt; margin-bottom: 40px; }
+  .signame { font-weight: bold; font-size: 9.5pt; border-top: 1px solid #000; display: inline-block; padding-top: 4px; min-width: 180px; }
+  .subnip { font-size: 8pt; color: #64748b; margin-top: 2px; }
 
   @media print {
     body { background: #fff; }
     .toolbar { display: none; }
-    .page { box-shadow: none; margin: 0; max-width: none; }
+    .page { box-shadow: none; margin: 0; padding: 15mm 15mm; width: 100%; }
   }
 </style>
 <script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 <div class="toolbar">
-  <span>{{ reports|length }} laporan siap dicetak</span>
-  <button onclick="window.print()"><i data-lucide="printer" class="icon"></i> Print</button>
+  <span>{{ reports|length }} laporan siap dicetak / diekspor</span>
+  <div style="display: flex; gap: 8px;">
+    <button onclick="downloadPDF()" style="background: #e65100; color: #fff;"><i data-lucide="file-text" class="icon"></i> Simpan PDF</button>
+    <button onclick="window.print()"><i data-lucide="printer" class="icon"></i> Print</button>
+  </div>
 </div>
 
 {% for item in reports %}
 {% set r = item.r %}
 {% set v_spec = get_vendor_spec(r['vendor']) %}
-<div class="page">
-  <h1>BERITA ACARA UJI FUNGSI PERANGKAT</h1>
-  <h2 class="sub">{{ v_spec['name'] }}</h2>
+<div class="page" id="report-page-{{ r['id'] }}">
+  <div class="doc-title">BERITA ACARA UJI FUNGSI PERANGKAT</div>
+  <div class="doc-subtitle">{{ v_spec['name'] }}</div>
 
-  <h3>I. Identitas Perangkat &amp; Pengujian</h3>
+  <div class="sec-title">I. Identitas Perangkat &amp; Pengujian</div>
   <table class="identtbl">
-    <tr><td>Type Device</td><td>{{ r['type_device'] }}</td></tr>
-    <tr><td>Serial Number (S/N)</td><td>{{ r['serial_number'] }}</td></tr>
-    <tr><td>Lokasi Pengujian</td><td>{{ r['lokasi'] }}</td></tr>
-    <tr><td>Tanggal Pengujian</td><td>{{ r['tanggal'] }}</td></tr>
-    <tr><td>Petugas Penguji</td><td>{{ r['petugas'] }}</td></tr>
+    <tr><td>Type Device</td><td>:</td><td>{{ r['type_device'] }}</td></tr>
+    <tr><td>Serial Number (S/N)</td><td>:</td><td>{{ r['serial_number'] }}</td></tr>
+    <tr><td>Nomor Aset / BA</td><td>:</td><td>-</td></tr>
+    <tr><td>Lokasi Pengujian</td><td>:</td><td>{{ r['lokasi'] }}</td></tr>
+    <tr><td>Tanggal Pengujian</td><td>:</td><td>{{ r['tanggal'] }}</td></tr>
+    <tr><td>Petugas Penguji</td><td>:</td><td>{{ r['petugas'] }}</td></tr>
   </table>
 
-  <h3>II. Checklist Uji Fungsi</h3>
+  <div class="sec-title">II. Checklist Uji Fungsi</div>
   <table class="checktbl">
-    <tr><th class="no">No</th><th>Item Pengujian</th><th>Prosedur / Cara Uji</th><th>Hasil</th><th>Keterangan</th></tr>
-    {% for item2 in v_spec['items'] %}
-    {% set i = loop.index %}
-    <tr>
-      <td class="no">{{ i }}</td>
-      <td>{{ item2.nama }}</td>
-      <td>{{ item2.prosedur }}</td>
-      <td class="hasil {{ 'ok' if r['hasil'~i]=='OK' else 'nok' }}">{{ r['hasil'~i] }}</td>
-      <td>{{ r['ket'~i] }}</td>
-    </tr>
-    {% endfor %}
+    <thead>
+      <tr>
+        <th class="no">No</th>
+        <th>Item Pengujian</th>
+        <th>Prosedur / Cara Uji</th>
+        <th>Hasil</th>
+        <th>Keterangan</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item2 in v_spec['items'] %}
+      {% set i = loop.index %}
+      <tr>
+        <td class="no">{{ i }}</td>
+        <td class="item-name">{{ item2.nama }}</td>
+        <td class="prosedur">{{ item2.prosedur }}</td>
+        <td class="hasil {{ 'ok' if r['hasil'~i]=='OK' else 'nok' }}">{{ r['hasil'~i] }}</td>
+        <td class="ket">{{ r['ket'~i] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
   </table>
 
-  <h3>III. Lampiran Dokumentasi Foto</h3>
+  <div class="sec-title">III. Lampiran Dokumentasi Foto</div>
   {% for s in v_spec['photo_sections'] %}
   <div class="photosec">
     <strong>{{ loop.index }}. {{ s.judul }}</strong>
-    <div class="photogrid">
+    <div class="photobox">
       {% for f in item.photos[s.key] %}
       <img src="/evidence/{{ item.folder }}/{{ f }}" alt="">
-      {% else %}<span class="nophoto">— tidak ada foto —</span>{% endfor %}
+      {% else %}<span class="nophoto">( Tidak ada foto )</span>{% endfor %}
     </div>
   </div>
   {% endfor %}
 
-  <h3>IV. Catatan Tambahan</h3>
-  <p class="catatan">{{ r['catatan'] }}</p>
+  <div class="sec-title">IV. Catatan Tambahan</div>
+  <div class="catatan-box">{{ r['catatan'] or '-' }}</div>
 
-  <div class="sigwrap" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; text-align: center; margin-top: 26px;">
-    <div>
-      <div class="sigtitle">Petugas Penguji</div>
-      <div class="signame" style="margin-top: 46px; font-weight: 600; border-top: 1px solid #333; display: inline-block; padding-top: 4px; min-width: 160px;">{{ r['petugas'] or '___________________' }}</div>
-    </div>
-    <div>
-      <div class="sigtitle">Mengetahui / Saksi (DCS)</div>
-      <div class="signame" style="margin-top: 46px; font-weight: 600; border-top: 1px solid #333; display: inline-block; padding-top: 4px; min-width: 160px;">{{ r['saksi'] or '___________________' }}</div>
-    </div>
-    <div>
-      <div class="sigtitle">Mengetahui / Saksi (DID)</div>
-      <div class="signame" style="margin-top: 46px; font-weight: 600; border-top: 1px solid #333; display: inline-block; padding-top: 4px; min-width: 160px;">{{ r['saksi2'] or '___________________' }}</div>
-    </div>
-    <div>
-      <div class="sigtitle">Mengetahui / Saksi (ECS)</div>
-      <div class="signame" style="margin-top: 46px; font-weight: 600; border-top: 1px solid #333; display: inline-block; padding-top: 4px; min-width: 160px;">{{ r['saksi3'] or '___________________' }}</div>
-    </div>
-  </div>
+  <!-- 2x2 Grid Signature Table matching docx Table 9 -->
+  <table class="sigtbl">
+    <tr>
+      <td>
+        <div class="sigtitle">Petugas Penguji</div>
+        <div class="signame">{{ (r['petugas'] or '_______________________') }}</div>
+        <div class="subnip">( Nama / NIP )</div>
+      </td>
+      <td>
+        <div class="sigtitle">Mengetahui / Saksi 1 (DCS)</div>
+        <div class="signame">{{ (r['saksi'] or '_______________________') }}</div>
+        <div class="subnip">( Nama / NIP )</div>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <div class="sigtitle">Mengetahui / Saksi 2 (DID)</div>
+        <div class="signame">{{ (r['saksi2'] or '_______________________') }}</div>
+        <div class="subnip">( Nama / NIP )</div>
+      </td>
+      <td>
+        <div class="sigtitle">Mengetahui / Saksi 3 (ECS)</div>
+        <div class="signame">{{ (r['saksi3'] or '_______________________') }}</div>
+        <div class="subnip">( Nama / NIP )</div>
+      </td>
+    </tr>
+  </table>
 </div>
 {% endfor %}
 
 <script>
   lucide.createIcons();
-  window.onload = () => window.print();
+
+  function downloadPDF() {
+    const pages = document.querySelectorAll('.page');
+    if (!pages.length) return;
+    
+    const toolbar = document.querySelector('.toolbar');
+    if (toolbar) toolbar.style.display = 'none';
+
+    // Container for PDF export
+    const container = document.createElement('div');
+    pages.forEach(p => {
+      const clone = p.cloneNode(true);
+      clone.style.boxShadow = 'none';
+      clone.style.margin = '0 auto 20px auto';
+      container.appendChild(clone);
+    });
+
+    const opt = {
+      margin: [6, 6, 6, 6],
+      filename: 'Berita_Acara_SDWAN_' + new Date().toISOString().slice(0, 10) + '.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['css', 'legacy'] }
+    };
+
+    html2pdf().set(opt).from(container).save().then(() => {
+      if (toolbar) toolbar.style.display = 'flex';
+    }).catch(err => {
+      console.error('PDF export error:', err);
+      if (toolbar) toolbar.style.display = 'flex';
+    });
+  }
+
+  window.onload = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('download') === 'pdf') {
+      setTimeout(downloadPDF, 600);
+    } else {
+      window.print();
+    }
+  };
 </script>
 </body>
 </html>

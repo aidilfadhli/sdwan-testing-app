@@ -156,6 +156,66 @@
       </ul>
     </div>
   </div>
+
+  <!-- Officer Performance Card -->
+  <div class="analytics-card">
+    <div class="card-head">
+      <i data-lucide="user-check" class="icon" style="color: #0284c7;"></i>
+      <span>Produktivitas & Pass Rate Petugas</span>
+    </div>
+    <div class="card-body">
+      <ul class="failed-list">
+        {% if analytics and analytics['officer_stats'] %}
+        {% for item in analytics['officer_stats'] %}
+        <li class="failed-item">
+          <div class="failed-info">
+            <span class="failed-name"><strong>{{ item['officer'] }}</strong></span>
+            <span class="failed-count" style="color: #0284c7;">{{ item['total'] }} Diuji • Pass: {{ item['pass_rate'] }}%</span>
+          </div>
+          <div class="failed-bar-bg">
+            <div class="failed-bar-fill" style="width: {{ item['pass_rate'] }}%; background: #0284c7;"></div>
+          </div>
+        </li>
+        {% endfor %}
+        {% else %}
+        <div class="empty-failed">
+          <i data-lucide="info" style="color: var(--text-muted); width: 28px; height: 28px;"></i>
+          <p>Belum ada data petugas.</p>
+        </div>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+
+  <!-- Model Defect Rate Card -->
+  <div class="analytics-card">
+    <div class="card-head">
+      <i data-lucide="shield-alert" class="icon" style="color: #dc2626;"></i>
+      <span>Tingkat Kegagalan (Defect Rate) per Model</span>
+    </div>
+    <div class="card-body">
+      <ul class="failed-list">
+        {% if analytics and analytics['model_stats'] %}
+        {% for item in analytics['model_stats'] %}
+        <li class="failed-item">
+          <div class="failed-info">
+            <span class="failed-name"><strong>{{ item['model'] }}</strong></span>
+            <span class="failed-count" style="color: #dc2626;">Defect: {{ item['fail_rate'] }}% ({{ item['fail'] }}/{{ item['total'] }})</span>
+          </div>
+          <div class="failed-bar-bg">
+            <div class="failed-bar-fill" style="width: {{ item['fail_rate'] }}%; background: #dc2626;"></div>
+          </div>
+        </li>
+        {% endfor %}
+        {% else %}
+        <div class="empty-failed">
+          <i data-lucide="info" style="color: var(--text-muted); width: 28px; height: 28px;"></i>
+          <p>Belum ada data model.</p>
+        </div>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
 </section>
 
 <script id="analytics-json-data" type="application/json">
