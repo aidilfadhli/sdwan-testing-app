@@ -13,13 +13,18 @@
     {% endif %}
   </h1>
   <div class="actions">
-    <a class="btn primary" href="/print?ids={{ r['id'] }}" target="_blank"><i data-lucide="printer" class="icon"></i> Print</a>
-    <a class="btn" href="/report/{{ r['id'] }}"><i data-lucide="download" class="icon"></i> Unduh Berita Acara (.docx)</a>
-    <a class="btn secondary" href="/device/{{ r['id'] }}/edit"><i data-lucide="edit-3" class="icon"></i> Edit Laporan</a>
-    <a class="btn" href="/form?sn={{ r['serial_number'] }}&vendor={{ v_spec['id'] }}&retest_of={{ r['id'] }}"><i data-lucide="refresh-cw" class="icon"></i> Uji Ulang</a>
+    <a class="btn primary" href="/print?ids={{ r['id'] }}" target="_blank"><i data-lucide="printer" class="icon"></i>
+      Print</a>
+    <a class="btn" href="/report/{{ r['id'] }}"><i data-lucide="download" class="icon"></i> Unduh Berita Acara
+      (.docx)</a>
+    <a class="btn secondary" href="/device/{{ r['id'] }}/edit"><i data-lucide="edit-3" class="icon"></i> Edit
+      Laporan</a>
+    <a class="btn" href="/form?sn={{ r['serial_number'] }}&vendor={{ v_spec['id'] }}&retest_of={{ r['id'] }}"><i
+        data-lucide="refresh-cw" class="icon"></i> Uji Ulang</a>
     <form method="post" action="/device/{{ r['id'] }}/delete" id="detail-delete-form">
       <input type="hidden" name="pin" id="detail-pin-input">
-      <button type="button" class="btn danger" onclick="confirmDeleteDetail('{{ r.serial_number }}')"><i data-lucide="trash-2" class="icon"></i> Hapus</button>
+      <button type="button" class="btn danger" onclick="confirmDeleteDetail('{{ r.serial_number }}')"><i
+          data-lucide="trash-2" class="icon"></i> Hapus</button>
     </form>
   </div>
 </div>
@@ -29,23 +34,29 @@
   <legend>Riwayat Pengujian S/N Ini (Total {{ history|length }} Versi)</legend>
   <div style="display: flex; flex-direction: column; gap: 8px;">
     {% for h in history %}
-    {% set bcolor = '#1e7d32' if h['status'] == 'PASS' else '#c62828' %}
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #fff; border-radius: 6px; border-left: 3px solid {{ bcolor }}; font-size: 0.88rem;">
-      <div>
-        <strong>Laporan #{{ h['id'] }} — Versi {{ h['version'] or 1 }}</strong>
-        <span style="font-size: 0.8rem; color: #666; margin-left: 8px;">{{ h['tanggal'] }} (Petugas: {{ h['petugas'] or '—' }})</span>
-      </div>
-      <div>
-        <span class="badge small {{ 'ok' if h['status'] == 'PASS' else 'nok' }}">{{ h['status'] }}</span>
-        {% if h['id'] != r['id'] %}
-        <a href="/device/{{ h['id'] }}" class="btn small" style="margin-left: 6px;">Buka</a>
-        {% else %}
-        <span class="hint" style="margin-left: 6px; font-size: 0.75rem; color: #888;">(Sedang Dibuka)</span>
+    {% if h['status'] == 'PASS' %}
+    <div
+      style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #fff; border-radius: 6px; border-left: 3px solid #1e7d32; font-size: 0.88rem;">
+      {% else %}
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #fff; border-radius: 6px; border-left: 3px solid #c62828; font-size: 0.88rem;">
         {% endif %}
+        <div>
+          <strong>Laporan #{{ h['id'] }} — Versi {{ h['version'] or 1 }}</strong>
+          <span style="font-size: 0.8rem; color: #666; margin-left: 8px;">{{ h['tanggal'] }} (Petugas: {{ h['petugas']
+            or '—' }})</span>
+        </div>
+        <div>
+          <span class="badge small {{ 'ok' if h['status'] == 'PASS' else 'nok' }}">{{ h['status'] }}</span>
+          {% if h['id'] != r['id'] %}
+          <a href="/device/{{ h['id'] }}" class="btn small" style="margin-left: 6px;">Buka</a>
+          {% else %}
+          <span class="hint" style="margin-left: 6px; font-size: 0.75rem; color: #888;">(Sedang Dibuka)</span>
+          {% endif %}
+        </div>
       </div>
+      {% endfor %}
     </div>
-    {% endfor %}
-  </div>
 </fieldset>
 {% endif %}
 
@@ -98,17 +109,23 @@
 <fieldset>
   <legend>Checklist Uji Fungsi ({{ v_spec['name'] }})</legend>
   <div class="tablewrap">
-  <table>
-    <tr><th>No</th><th>Item Pengujian</th><th>Hasil</th><th>Keterangan</th></tr>
-    {% for item in v_spec['items'] %}
-    {% set i = loop.index %}
-    <tr>
-      <td>{{ i }}</td><td>{{ item.nama }}</td>
-      <td><span class="badge {{ 'ok' if r['hasil'~i]=='OK' else 'nok' }}">{{ r['hasil'~i] }}</span></td>
-      <td>{{ r['ket'~i] }}</td>
-    </tr>
-    {% endfor %}
-  </table>
+    <table>
+      <tr>
+        <th>No</th>
+        <th>Item Pengujian</th>
+        <th>Hasil</th>
+        <th>Keterangan</th>
+      </tr>
+      {% for item in v_spec['items'] %}
+      {% set i = loop.index %}
+      <tr>
+        <td>{{ i }}</td>
+        <td>{{ item.nama }}</td>
+        <td><span class="badge {{ 'ok' if r['hasil'~i]=='OK' else 'nok' }}">{{ r['hasil'~i] }}</span></td>
+        <td>{{ r['ket'~i] }}</td>
+      </tr>
+      {% endfor %}
+    </table>
   </div>
 </fieldset>
 
@@ -119,7 +136,8 @@
     <strong>{{ loop.index }}. {{ s.judul }}</strong>
     <div class="thumbs">
       {% for f in photos[s.key] %}
-      <a href="/evidence/{{ folder }}/{{ f }}" target="_blank"><img src="/evidence/{{ folder }}/{{ f }}" alt="{{ f }}"></a>
+      <a href="/evidence/{{ folder }}/{{ f }}" target="_blank"><img src="/evidence/{{ folder }}/{{ f }}"
+          alt="{{ f }}"></a>
       {% else %}<span class="empty">— tidak ada foto —</span>{% endfor %}
     </div>
   </div>
@@ -127,16 +145,19 @@
 </fieldset>
 
 {% if r['catatan'] %}
-<fieldset><legend>Catatan Tambahan</legend><p>{{ r['catatan'] }}</p></fieldset>
+<fieldset>
+  <legend>Catatan Tambahan</legend>
+  <p>{{ r['catatan'] }}</p>
+</fieldset>
 {% endif %}
 
 <script>
-async function confirmDeleteDetail(sn) {
-  const p = await requestPin('Masukkan PIN supervisor untuk menghapus laporan ' + sn + ':');
-  if (!p) return;
-  const f = document.getElementById('detail-delete-form');
-  document.getElementById('detail-pin-input').value = p;
-  f.submit();
-}
+  async function confirmDeleteDetail(sn) {
+    const p = await requestPin('Masukkan PIN supervisor untuk menghapus laporan ' + sn + ':');
+    if (!p) return;
+    const f = document.getElementById('detail-delete-form');
+    document.getElementById('detail-pin-input').value = p;
+    f.submit();
+  }
 </script>
 {% endblock %}

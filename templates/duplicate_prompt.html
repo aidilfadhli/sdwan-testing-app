@@ -1,10 +1,13 @@
 {% extends "base.html" %}
 {% block title %}S/N Terdeteksi: {{ sn }}{% endblock %}
 {% block content %}
-<div class="duplicate-container" style="max-width: 680px; margin: 30px auto; background: var(--card-bg, #fff); border-radius: 12px; padding: 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); border: 1px solid var(--border-color, #e0e0e0);">
-  
-  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #eee;">
-    <div style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+<div class="duplicate-container"
+  style="max-width: 680px; margin: 30px auto; background: var(--card-bg, #fff); border-radius: 12px; padding: 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); border: 1px solid var(--border-color, #e0e0e0);">
+
+  <div
+    style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #eee;">
+    <div
+      style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
       <i data-lucide="alert-triangle" style="width: 28px; height: 28px;"></i>
     </div>
     <div>
@@ -16,56 +19,73 @@
   </div>
 
   <div style="margin-bottom: 24px;">
-    <h3 style="font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; color: #888; margin-bottom: 10px;">Riwayat Pengujian Terakhir</h3>
+    <h3 style="font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; color: #888; margin-bottom: 10px;">
+      Riwayat Pengujian Terakhir</h3>
     <div class="history-list" style="display: flex; flex-direction: column; gap: 10px;">
       {% for r in reports %}
       {% set v_spec = get_vendor_spec(r['vendor']) %}
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid {{ '#1e7d32' if r['status'] == 'PASS' else '#c62828' }};">
-        <div>
-          <div style="font-weight: 600; font-size: 0.95rem;">
-            Laporan #{{ r['id'] }} — Versi {{ r['version'] or 1 }}
-            <span class="badge small" style="background:#eef2f8; color:#14315c; font-size:0.75rem; margin-left: 6px;">{{ v_spec['name'] }}</span>
+      {% if r['status'] == 'PASS' %}
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1e7d32;">
+        {% else %}
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #c62828;">
+          {% endif %}
+          <div>
+            <div style="font-weight: 600; font-size: 0.95rem;">
+              Laporan #{{ r['id'] }} — Versi {{ r['version'] or 1 }}
+              <span class="badge small"
+                style="background:#eef2f8; color:#14315c; font-size:0.75rem; margin-left: 6px;">{{ v_spec['name']
+                }}</span>
+            </div>
+            <div style="font-size: 0.82rem; color: #666; margin-top: 2px;">
+              {{ r['tanggal'] }} • Petugas: {{ r['petugas'] or '—' }} • {{ r['lokasi'] }}
+            </div>
           </div>
-          <div style="font-size: 0.82rem; color: #666; margin-top: 2px;">
-            {{ r['tanggal'] }} • Petugas: {{ r['petugas'] or '—' }} • {{ r['lokasi'] }}
+          <div>
+            <span class="badge {{ 'ok' if r['status'] == 'PASS' else 'nok' }}" style="font-size: 0.85rem;">{{
+              r['status'] }}</span>
+            <a href="/device/{{ r['id'] }}" class="btn small" style="margin-left: 8px;"><i data-lucide="eye"
+                class="icon"></i> Detail</a>
           </div>
         </div>
-        <div>
-          <span class="badge {{ 'ok' if r['status'] == 'PASS' else 'nok' }}" style="font-size: 0.85rem;">{{ r['status'] }}</span>
-          <a href="/device/{{ r['id'] }}" class="btn small" style="margin-left: 8px;"><i data-lucide="eye" class="icon"></i> Detail</a>
-        </div>
+        {% endfor %}
       </div>
-      {% endfor %}
     </div>
+
+    <div
+      style="display: flex; flex-direction: column; gap: 12px; background: #f0f4f9; padding: 16px; border-radius: 8px;">
+      <strong style="font-size: 0.95rem; color: #14315c;">Pilih tindakan yang ingin dilakukan:</strong>
+
+      {% set latest = reports[0] %}
+      {% set latest_vendor = latest['vendor'] or detect_vendor_by_sn(sn) %}
+
+      <a href="/form?sn={{ sn }}&vendor={{ latest_vendor }}&retest_of={{ latest['id'] }}" class="btn primary big"
+        style="justify-content: flex-start; text-decoration: none;">
+        <i data-lucide="rotate-cw" class="icon"></i>
+        <div style="text-align: left;">
+          <div><strong>Mulai Uji Ulang (Buat Laporan Baru - Versi {{ (latest['version'] or 1) + 1 }})</strong></div>
+          <span style="font-size: 0.8rem; font-weight: normal; opacity: 0.9;">Untuk pengujian ulang resmi. Laporan
+            terdahulu tetap tersimpan di histori.</span>
+        </div>
+      </a>
+
+      <a href="/device/{{ latest['id'] }}/edit" class="btn secondary big"
+        style="justify-content: flex-start; text-decoration: none; background: #fff; border: 1px solid #ccc; color: #333;">
+        <i data-lucide="edit-3" class="icon"></i>
+        <div style="text-align: left;">
+          <div><strong>Edit Laporan Terakhir (#{{ latest['id'] }})</strong></div>
+          <span style="font-size: 0.8rem; font-weight: normal; color: #666;">Jika hanya ingin memperbaiki salah ketik
+            S/N, nama petugas, atau ganti foto.</span>
+        </div>
+      </a>
+
+      <a href="/device/{{ latest['id'] }}" class="btn big"
+        style="justify-content: flex-start; text-decoration: none; background: transparent; color: #555;">
+        <i data-lucide="eye" class="icon"></i>
+        <div><strong>Lihat Laporan Terakhir (#{{ latest['id'] }})</strong></div>
+      </a>
+    </div>
+
   </div>
-
-  <div style="display: flex; flex-direction: column; gap: 12px; background: #f0f4f9; padding: 16px; border-radius: 8px;">
-    <strong style="font-size: 0.95rem; color: #14315c;">Pilih tindakan yang ingin dilakukan:</strong>
-    
-    {% set latest = reports[0] %}
-    {% set latest_vendor = latest['vendor'] or detect_vendor_by_sn(sn) %}
-    
-    <a href="/form?sn={{ sn }}&vendor={{ latest_vendor }}&retest_of={{ latest['id'] }}" class="btn primary big" style="justify-content: flex-start; text-decoration: none;">
-      <i data-lucide="rotate-cw" class="icon"></i>
-      <div style="text-align: left;">
-        <div><strong>Mulai Uji Ulang (Buat Laporan Baru - Versi {{ (latest['version'] or 1) + 1 }})</strong></div>
-        <span style="font-size: 0.8rem; font-weight: normal; opacity: 0.9;">Untuk pengujian ulang resmi. Laporan terdahulu tetap tersimpan di histori.</span>
-      </div>
-    </a>
-
-    <a href="/device/{{ latest['id'] }}/edit" class="btn secondary big" style="justify-content: flex-start; text-decoration: none; background: #fff; border: 1px solid #ccc; color: #333;">
-      <i data-lucide="edit-3" class="icon"></i>
-      <div style="text-align: left;">
-        <div><strong>Edit Laporan Terakhir (#{{ latest['id'] }})</strong></div>
-        <span style="font-size: 0.8rem; font-weight: normal; color: #666;">Jika hanya ingin memperbaiki salah ketik S/N, nama petugas, atau ganti foto.</span>
-      </div>
-    </a>
-
-    <a href="/device/{{ latest['id'] }}" class="btn big" style="justify-content: flex-start; text-decoration: none; background: transparent; color: #555;">
-      <i data-lucide="eye" class="icon"></i>
-      <div><strong>Lihat Laporan Terakhir (#{{ latest['id'] }})</strong></div>
-    </a>
-  </div>
-
-</div>
-{% endblock %}
+  {% endblock %}
