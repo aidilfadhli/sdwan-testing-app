@@ -213,9 +213,9 @@
 <form method="post" id="deleteform" style="display:none">
   <input type="hidden" name="pin">
 </form>
-<form method="post" id="bulkdeleteform" action="/bulk-delete" style="display:none">
-  <input type="hidden" name="pin">
-  <input type="hidden" name="ids">
+<form id="bulkdeleteform" method="post" action="/bulk-delete" style="display:none;">
+  <input type="hidden" name="pin" value="">
+  <input type="hidden" name="ids" value="">
 </form>
 
 <div id="action-modal" hidden>
@@ -226,6 +226,7 @@
     </div>
     <div class="action-body" style="display:flex; flex-direction:column; gap:12px;">
       <a class="btn primary big" id="action-print" target="_blank"><i data-lucide="printer" class="icon"></i> Print Laporan</a>
+      <a class="btn big" id="action-pdf" target="_blank" style="background: #e65100; color: #fff;"><i data-lucide="file-text" class="icon"></i> Simpan PDF</a>
       <a class="btn big" id="action-download"><i data-lucide="download" class="icon"></i> Unduh BA .docx</a>
       <a class="btn secondary big" id="action-edit"><i data-lucide="edit-3" class="icon"></i> Edit Laporan</a>
       <button type="button" class="btn danger big" id="action-delete"><i data-lucide="trash-2" class="icon"></i> Hapus Laporan</button>
@@ -235,6 +236,7 @@
 
 <div id="context-menu" class="context-menu" hidden>
   <div class="context-item" id="ctx-print"><i data-lucide="printer" class="icon"></i> Print Laporan</div>
+  <a class="context-item" id="ctx-pdf" target="_blank"><i data-lucide="file-text" class="icon"></i> Simpan PDF</a>
   <a class="context-item" id="ctx-download"><i data-lucide="download" class="icon"></i> Unduh BA (.docx)</a>
   <a class="context-item" id="ctx-edit"><i data-lucide="edit-3" class="icon"></i> Edit Laporan</a>
   <div class="context-item danger" id="ctx-delete"><i data-lucide="trash-2" class="icon"></i> Hapus Laporan</div>
@@ -249,6 +251,7 @@ function updateBulk() {
   const checked = [...document.querySelectorAll('.rowsel:checked')];
   document.getElementById('selcount').textContent = checked.length + ' dipilih';
   document.getElementById('bulkbtn').disabled = checked.length === 0;
+  if (document.getElementById('bulkpdfbtn')) document.getElementById('bulkpdfbtn').disabled = checked.length === 0;
   document.getElementById('bulkdlbtn').disabled = checked.length === 0;
   document.getElementById('bulkdelbtn').disabled = checked.length === 0;
   document.getElementById('selectall').checked =
@@ -270,6 +273,10 @@ function toggleSelectMode() {
 function printSelected() {
   const ids = [...document.querySelectorAll('.rowsel:checked')].map(c => c.value);
   if (ids.length) window.open('/print?ids=' + ids.join(','), '_blank');
+}
+function pdfSelected() {
+  const ids = [...document.querySelectorAll('.rowsel:checked')].map(c => c.value);
+  if (ids.length) window.open('/print?ids=' + ids.join(',') + '&download=pdf', '_blank');
 }
 function downloadSelected() {
   const ids = [...document.querySelectorAll('.rowsel:checked')].map(c => c.value);
@@ -384,6 +391,7 @@ function showActionModal(id, sn) {
   if (navigator.vibrate) navigator.vibrate(50);
   document.getElementById('action-sn').textContent = "Opsi Laporan: " + sn;
   document.getElementById('action-print').href = '/print?ids=' + id;
+  if (document.getElementById('action-pdf')) document.getElementById('action-pdf').href = '/print?ids=' + id + '&download=pdf';
   document.getElementById('action-download').href = '/report/' + id;
   document.getElementById('action-edit').href = '/device/' + id + '/edit';
   document.getElementById('action-delete').onclick = () => { closeActionModal(); deleteReport(id, sn); };
@@ -408,6 +416,10 @@ function showContextMenu(x, y, id, sn) {
   ctxMenu.style.top = top + 'px';
   
   document.getElementById('ctx-print').onclick = () => { hideContextMenu(); window.open('/print?ids=' + id, '_blank'); };
+  if (document.getElementById('ctx-pdf')) {
+    document.getElementById('ctx-pdf').href = '/print?ids=' + id + '&download=pdf';
+    document.getElementById('ctx-pdf').onclick = () => { hideContextMenu(); };
+  }
   document.getElementById('ctx-download').href = '/report/' + id;
   document.getElementById('ctx-download').onclick = () => { hideContextMenu(); };
   document.getElementById('ctx-edit').href = '/device/' + id + '/edit';

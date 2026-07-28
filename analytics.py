@@ -70,7 +70,13 @@ def get_analytics_data(
         # 4. Vendor Breakdown
         vendor_dist = get_vendor_distribution(conn, where_sql, params)
 
-        # 5. Distinct Models for filter dropdown
+        # 5. Officer Performance Stats
+        officer_stats = get_officer_stats(conn, where_sql, params)
+
+        # 6. Model Defect Stats
+        model_stats = get_model_defect_stats(conn, where_sql, params)
+
+        # 7. Distinct Models for filter dropdown
         model_rows = conn.execute(
             "SELECT DISTINCT type_device FROM reports WHERE type_device IS NOT NULL AND TRIM(type_device) != ''"
         ).fetchall()
@@ -86,6 +92,8 @@ def get_analytics_data(
             "throughput": throughput,
             "top_failed_items": top_failed,
             "vendor_distribution": vendor_dist,
+            "officer_stats": officer_stats,
+            "model_stats": model_stats,
             "available_models": sorted(available_models),
         }
     finally:
@@ -206,3 +214,81 @@ def get_vendor_distribution(conn, base_where: str = "", base_params: list = None
         vendor_map[v_name] = r["count"]
 
     return [{"vendor": name, "count": count} for name, count in vendor_map.items()]
+
+
+def get_officer_stats(conn, base_where: str = "", base_params: list = None) -> list[dict]:
+    """Menghitung total pengujian, lulus, gagal, dan pass rate per petugas."""
+    if base_params is None:
+        base_params = []
+    
+    where_clause = base_where
+    if "WHERE" in where_clause:
+        where_clause += " AND petugas IS NOT NULL AND TRIM(petugas) != ''"
+    else:
+        where_clause = " WHERE petugas IS NOT NULL AND TRIM(petugas) != ''"
+
+    query = f"""
+        SELECT 
+            petugas,
+            COUNT(*) as total,
+            SUM(CASE WHEN UPPER(status)='PASS' THEN 1 ELSE 0 END) as pass_c,
+            SUM(CASE WHEN UPPER(status)='FAIL' THEN 1 ELSE 0 END) as fail_c
+        FROM reports
+        {where_clause}
+        GROUP BY petugas
+        ORDER BY total DESC
+        LIMIT 10
+    """
+    rows = conn.execute(query, base_params).fetchall()
+    res = []
+    for r in rows:
+        tot = r["total"] or 0
+        p_c = r["pass_c"] or 0
+        rate = round((p_c / tot * 100), 1) if tot > 0 else 0.0
+        res.append({
+            "officer": r["petugas"],
+            "total": tot,
+            "pass": p_c,
+            "fail": r["fail_c"] or 0,
+            "pass_rate": rate
+        })
+    return res
+
+
+def get_model_defect_stats(conn, base_where: str = "", base_params: list = None) -> list[dict]:
+    """Menghitung statistik tingkat kegagalan (defect rate) per tipe model perangkat."""
+    if base_params is None:
+        base_params = []
+
+    where_clause = base_where
+    if "WHERE" in where_clause:
+        where_clause += " AND type_device IS NOT NULL AND TRIM(type_device) != ''"
+    else:
+        where_clause = " WHERE type_device IS NOT NULL AND TRIM(type_device) != ''"
+
+    query = f"""
+        SELECT 
+            type_device,
+            COUNT(*) as total,
+            SUM(CASE WHEN UPPER(status)='PASS' THEN 1 ELSE 0 END) as pass_c,
+            SUM(CASE WHEN UPPER(status)='FAIL' THEN 1 ELSE 0 END) as fail_c
+        FROM reports
+        {where_clause}
+        GROUP BY type_device
+        ORDER BY total DESC
+        LIMIT 10
+    """
+    rows = conn.execute(query, base_params).fetchall()
+    res = []
+    for r in rows:
+        tot = r["total"] or 0
+        f_c = r["fail_c"] or 0
+        rate = round((f_c / tot * 100), 1) if tot > 0 else 0.0
+        res.append({
+            "model": r["type_device"],
+            "total": tot,
+            "pass": r["pass_c"] or 0,
+            "fail": f_c,
+            "fail_rate": rate
+        })
+    return res
