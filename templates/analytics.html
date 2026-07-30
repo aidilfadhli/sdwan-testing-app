@@ -157,20 +157,55 @@
     </div>
   </div>
 
-  <!-- Officer Performance Card -->
+  <!-- Component Defect Breakdown Card (Multi-Vendor Category Mapping) -->
   <div class="analytics-card">
     <div class="card-head">
-      <i data-lucide="user-check" class="icon" style="color: #0284c7;"></i>
-      <span>Produktivitas & Pass Rate Petugas</span>
+      <i data-lucide="cpu" class="icon" style="color: #8b5cf6;"></i>
+      <span>Analisis Kegagalan Komponen Hardware</span>
     </div>
     <div class="card-body">
       <ul class="failed-list">
-        {% if analytics and analytics['officer_stats'] %}
-        {% for item in analytics['officer_stats'] %}
+        {% if analytics and analytics['component_breakdown'] %}
+        {% for item in analytics['component_breakdown'] %}
+        <li class="failed-item">
+          <div class="failed-info">
+            <span class="failed-name"><strong>{{ item['category'] }}</strong></span>
+            <span class="failed-count" style="color: #8b5cf6;">{{ item['count'] }} Kasus ({{ item['percentage'] }}%)</span>
+          </div>
+          <div class="failed-bar-bg">
+            <div class="failed-bar-fill" style="width: {{ item['percentage'] }}%; background: #8b5cf6;"></div>
+          </div>
+        </li>
+        {% endfor %}
+        {% else %}
+        <div class="empty-failed">
+          <i data-lucide="info" style="color: var(--text-muted); width: 28px; height: 28px;"></i>
+          <p>Belum ada kegagalan komponen terdeteksi.</p>
+        </div>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+
+  <!-- Officer Performance & Pace Consistency Card -->
+  <div class="analytics-card">
+    <div class="card-head">
+      <i data-lucide="user-check" class="icon" style="color: #0284c7;"></i>
+      <span>Produktivitas & Durasi Inspeksi Petugas</span>
+    </div>
+    <div class="card-body">
+      <ul class="failed-list">
+        {% if analytics and analytics['technician_consistency'] %}
+        {% for item in analytics['technician_consistency'] %}
         <li class="failed-item">
           <div class="failed-info">
             <span class="failed-name"><strong>{{ item['officer'] }}</strong></span>
-            <span class="failed-count" style="color: #0284c7;">{{ item['total'] }} Diuji • Pass: {{ item['pass_rate'] }}%</span>
+            <span class="failed-count" style="color: #0284c7;">
+              {{ item['total'] }} Unit • Pass {{ item['pass_rate'] }}% 
+              {% if item['avg_duration_minutes'] > 0 %}
+              • Avg {{ item['avg_duration_minutes'] }} m/unit
+              {% endif %}
+            </span>
           </div>
           <div class="failed-bar-bg">
             <div class="failed-bar-fill" style="width: {{ item['pass_rate'] }}%; background: #0284c7;"></div>

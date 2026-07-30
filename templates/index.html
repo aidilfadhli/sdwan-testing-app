@@ -38,6 +38,18 @@
       <div class="stat fail"><span class="num">{{ stats['gagal'] or 0 }}</span><span>FAIL</span></div>
       <div class="stat rate"><span class="num">{{ stats['pass_rate'] or 0 }}%</span><span>PASS RATE</span></div>
     </div>
+
+    {% if analytics and analytics['shift_progress'] %}
+    <div style="background: var(--surface); border: 1px solid var(--border); padding: 10px 14px; border-radius: 8px; margin-top: 10px; font-size: 0.85rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span><strong>📊 Target Shift Hari Ini:</strong> {{ analytics['shift_progress']['today_total'] }} / {{ analytics['shift_progress']['target_quota'] }} Unit</span>
+        <span style="color: var(--primary); font-weight: 600;">{{ analytics['shift_progress']['progress_percentage'] }}% Target • {{ analytics['shift_progress']['units_per_hour'] }} u/jam</span>
+      </div>
+      <div style="background: var(--bg); height: 8px; border-radius: 4px; overflow: hidden;">
+        <div style="width: {{ analytics['shift_progress']['progress_percentage'] }}%; background: var(--primary); height: 100%; transition: width 0.4s;"></div>
+      </div>
+    </div>
+    {% endif %}
   </div>
 
   <div class="joinbox">

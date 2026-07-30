@@ -3,7 +3,142 @@
 document.addEventListener('DOMContentLoaded', () => {
   initAutoSuggestions();
   initFormDraftResilience();
+  initActiveTimerTracker();
+  initDeviceHealthBanner();
 });
+
+/* Active Timer Accumulator with Tab Visibility Listener */
+let activeTimerSeconds = 0;
+let timerInterval = null;
+
+function initActiveTimerTracker() {
+  const form = document.getElementById('testform') || document.getElementById('editform');
+  if (!form) return;
+
+  // Create or retrieve hidden duration_seconds input
+  let durationInput = document.getElementById('duration_seconds_field');
+  if (!durationInput) {
+    durationInput = document.createElement('input');
+    durationInput.type = 'hidden';
+    durationInput.name = 'duration_seconds';
+    durationInput.id = 'duration_seconds_field';
+    durationInput.value = '0';
+    form.appendChild(durationInput);
+  }
+
+  startTimer();
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      stopTimer();
+    } else {
+      startTimer();
+    }
+  });
+
+  form.addEventListener('submit', () => {
+    stopTimer();
+    durationInput.value = activeTimerSeconds.toString();
+  });
+}
+
+function startTimer() {
+  if (timerInterval) return;
+  timerInterval = setInterval(() => {
+    activeTimerSeconds++;
+    const durationInput = document.getElementById('duration_seconds_field');
+    if (durationInput) {
+      durationInput.value = activeTimerSeconds.toString();
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+
+/* Device Health Card Scan Lookup */
+function initDeviceHealthBanner() {
+  const snField = document.getElementById('snfield');
+  if (!snField) return;
+
+  const fetchHealthCard = async (rawSn) => {
+    if (!rawSn) return;
+    const cleanSn = rawSn.replace(/[\r\n\t\s]/g, '').toUpperCase();
+    snField.value = cleanSn;
+    
+    try {
+      const res = await fetch(`/api/device-history/${encodeURIComponent(cleanSn)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      renderDeviceHealthCard(data);
+    } catch (e) {
+      console.log('Error fetching device health:', e);
+    }
+  };
+
+  if (snField.value.trim()) {
+    fetchHealthCard(snField.value.trim());
+  }
+
+  snField.addEventListener('change', () => fetchHealthCard(snField.value.trim()));
+}
+
+function renderDeviceHealthCard(healthData) {
+  let cardContainer = document.getElementById('device-health-banner');
+  if (!cardContainer) {
+    cardContainer = document.createElement('div');
+    cardContainer.id = 'device-health-banner';
+    const mainForm = document.getElementById('testform') || document.getElementById('editform');
+    if (mainForm) {
+      mainForm.parentNode.insertBefore(cardContainer, mainForm);
+    }
+  }
+
+  if (!healthData || !healthData.has_history) {
+    cardContainer.innerHTML = '';
+    return;
+  }
+
+  const isChronic = healthData.is_chronic_defect;
+  const bannerBg = isChronic ? '#f8d7da' : '#e2e3e5';
+  const bannerBorder = isChronic ? '#f5c6cb' : '#d6d8db';
+  const textColor = isChronic ? '#721c24' : '#383d41';
+  const badgeText = isChronic ? '⚠️ HARDWARE DEFECT CHRONIC (FAIL ≥ 2)' : 'ℹ️ RIWAYAT PENGUSULAN TERSEDIA';
+
+  let failedItemsHtml = '';
+  if (healthData.history && healthData.history.length > 0) {
+    const latest = healthData.history[0];
+    if (latest.failed_items && latest.failed_items.length > 0) {
+      failedItemsHtml = `
+        <div style="margin-top:6px; font-size:0.83rem;">
+          <strong>Item Gagal Terakhir:</strong>
+          <ul style="margin:4px 0 0 16px; padding:0;">
+            ${latest.failed_items.map(fi => `<li>[${fi.category}] ${fi.name} ${fi.note ? '(' + fi.note + ')' : ''}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+  }
+
+  cardContainer.style.cssText = `background:${bannerBg}; border:1px solid ${bannerBorder}; color:${textColor}; padding:14px 18px; border-radius:8px; margin-bottom:20px; font-size:0.9rem;`;
+  cardContainer.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+      <div>
+        <strong style="font-size:0.95rem;">${badgeText}</strong>
+        <div style="margin-top:4px; font-size:0.85rem;">
+          S/N: <code>${healthData.serial_number}</code> | Total Uji: <strong>${healthData.total_attempts}x</strong> 
+          (PASS: ${healthData.pass_count}, FAIL: ${healthData.fail_count})
+        </div>
+        ${failedItemsHtml}
+      </div>
+      <a href="/scan?sn=${healthData.serial_number}" class="btn small secondary" style="background:#fff; text-decoration:none;">View Full Audit Trail</a>
+    </div>
+  `;
+}
 
 /* 1. Auto-Suggest Datalist Integration */
 async function initAutoSuggestions() {
