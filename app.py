@@ -375,6 +375,13 @@ def get_stats_api(
     return get_analytics_data(vendor=vendor, status=status, date_range=date_range, model=model)
 
 
+@app.get("/api/device-history/{serial_number}")
+def api_device_history(serial_number: str):
+    """API endpoint penyedia riwayat pengujian & status kesehatan perangkat untuk S/N tertentu."""
+    from analytics import get_device_health_history
+    return get_device_health_history(serial_number)
+
+
 @app.get("/analytics")
 def analytics_page(
     request: Request,
@@ -585,6 +592,8 @@ async def submit(request: Request):
         active_hasils = [hasil_dict[i] for i in range(1, len(items) + 1)]
         status = "PASS" if all(h == "OK" for h in active_hasils) else "FAIL"
 
+        duration_val = int(val("duration_seconds")) if val("duration_seconds").isdigit() else 0
+
         conn = get_conn()
         cur = conn.execute(
             """INSERT INTO reports (serial_number, vendor, version, parent_report_id,
@@ -593,8 +602,8 @@ async def submit(request: Request):
                  hasil4, ket4, hasil5, ket5, hasil6, ket6,
                  hasil7, ket7, hasil8, ket8, hasil9, ket9,
                  hasil10, ket10, hasil11, ket11, hasil12, ket12, hasil13, ket13,
-                 catatan, status)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                 catatan, duration_seconds, status)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 sn, vendor_id, version_val, parent_id_val,
                 val("type_device"), val("lokasi"), val("tanggal"),
@@ -603,7 +612,7 @@ async def submit(request: Request):
                 hasil_dict[4], ket_dict[4], hasil_dict[5], ket_dict[5], hasil_dict[6], ket_dict[6],
                 hasil_dict[7], ket_dict[7], hasil_dict[8], ket_dict[8], hasil_dict[9], ket_dict[9],
                 hasil_dict[10], ket_dict[10], hasil_dict[11], ket_dict[11], hasil_dict[12], ket_dict[12], hasil_dict[13], ket_dict[13],
-                val("catatan"), status,
+                val("catatan"), duration_val, status,
             ),
         )
         report_id = cur.lastrowid

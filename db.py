@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS reports (
     hasil12 TEXT DEFAULT '', ket12 TEXT DEFAULT '',
     hasil13 TEXT DEFAULT '', ket13 TEXT DEFAULT '',
     catatan TEXT DEFAULT '',
+    duration_seconds INTEGER DEFAULT 0,
     status TEXT DEFAULT '',
     created_at TEXT DEFAULT (datetime('now', 'localtime'))
 );
@@ -69,7 +70,10 @@ def _migrate(conn: sqlite3.Connection) -> None:
             conn.execute(f"ALTER TABLE reports ADD COLUMN hasil{i} TEXT DEFAULT ''")
         if f"ket{i}" not in cols:
             conn.execute(f"ALTER TABLE reports ADD COLUMN ket{i} TEXT DEFAULT ''")
-            
+
+    if "duration_seconds" not in cols:
+        conn.execute("ALTER TABLE reports ADD COLUMN duration_seconds INTEGER DEFAULT 0")
+
     conn.execute("CREATE INDEX IF NOT EXISTS idx_reports_sn ON reports(serial_number);")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_reports_vendor ON reports(vendor);")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status);")

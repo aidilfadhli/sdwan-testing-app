@@ -3,6 +3,7 @@ Menghitung statistik ringkasan, throughput harian, item yang sering gagal, dan d
 """
 
 import json
+import re
 from datetime import datetime, timedelta
 from db import get_conn
 from checklist import VENDOR_REGISTRY
@@ -76,7 +77,16 @@ def get_analytics_data(
         # 6. Model Defect Stats
         model_stats = get_model_defect_stats(conn, where_sql, params)
 
-        # 7. Distinct Models for filter dropdown
+        # 7. Component Failure Breakdown (Dynamic Multi-Vendor Category Mapping)
+        component_breakdown = get_component_failure_breakdown(conn, where_sql, params)
+
+        # 8. Technician Testing Consistency (with Duration Outlier Clamping)
+        technician_consistency = get_technician_consistency(conn, where_sql, params)
+
+        # 9. Daily Shift Progress
+        shift_progress = get_daily_shift_progress(conn)
+
+        # 10. Distinct Models for filter dropdown
         model_rows = conn.execute(
             "SELECT DISTINCT type_device FROM reports WHERE type_device IS NOT NULL AND TRIM(type_device) != ''"
         ).fetchall()
@@ -94,6 +104,9 @@ def get_analytics_data(
             "vendor_distribution": vendor_dist,
             "officer_stats": officer_stats,
             "model_stats": model_stats,
+            "component_breakdown": component_breakdown,
+            "technician_consistency": technician_consistency,
+            "shift_progress": shift_progress,
             "available_models": sorted(available_models),
         }
     finally:
@@ -292,3 +305,211 @@ def get_model_defect_stats(conn, base_where: str = "", base_params: list = None)
             "fail_rate": rate
         })
     return res
+
+
+def get_component_failure_breakdown(conn, base_where: str = "", base_params: list = None) -> list[dict]:
+    """Kategorisasi kegagalan komponen hardware (Physical & Power, Interface & SFP, Firmware, Documentation)."""
+    if base_params is None:
+        base_params = []
+
+    where_clause = base_where
+    if "WHERE" in where_clause:
+        where_clause += " AND UPPER(status) = 'FAIL'"
+    else:
+        where_clause = " WHERE UPPER(status) = 'FAIL'"
+
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(reports)")}
+    select_cols = ["vendor", "hasil1", "hasil2", "hasil3", "hasil4", "hasil5", "hasil6", "hasil7"]
+    if "checklist_json" in cols:
+        select_cols.append("checklist_json")
+
+    query = f"SELECT {', '.join(select_cols)} FROM reports {where_clause}"
+    rows = conn.execute(query, base_params).fetchall()
+
+    category_counts = {}
+
+    for r in rows:
+        v_id = (r["vendor"] if ("vendor" in r.keys() and r["vendor"]) else "fortinet").lower()
+        v_spec = VENDOR_REGISTRY.get(v_id, VENDOR_REGISTRY["fortinet"])
+        items_spec = v_spec.get("items", [])
+
+        # Process checklist items
+        for idx, item in enumerate(items_spec, start=1):
+            col_name = f"hasil{idx}"
+            if col_name in r.keys() and r[col_name] == "NOT OK":
+                cat = item.get("category", "General")
+                category_counts[cat] = category_counts.get(cat, 0) + 1
+
+    total_failures = sum(category_counts.values())
+    result = []
+    for cat_name, count in category_counts.items():
+        pct = round((count / total_failures * 100), 1) if total_failures > 0 else 0.0
+        result.append({"category": cat_name, "count": count, "percentage": pct})
+
+    result.sort(key=lambda x: x["count"], reverse=True)
+    return result
+
+
+def get_technician_consistency(conn, base_where: str = "", base_params: list = None) -> list[dict]:
+    """Hitung statistik performa dan rata-rata durasi inspeksi per petugas (dengan clamping outlier > 30 menit)."""
+    if base_params is None:
+        base_params = []
+
+    where_clause = base_where
+    if "WHERE" in where_clause:
+        where_clause += " AND petugas IS NOT NULL AND TRIM(petugas) != ''"
+    else:
+        where_clause = " WHERE petugas IS NOT NULL AND TRIM(petugas) != ''"
+
+    query = f"""
+        SELECT 
+            petugas,
+            COUNT(*) as total,
+            SUM(CASE WHEN UPPER(status)='PASS' THEN 1 ELSE 0 END) as pass_c,
+            SUM(CASE WHEN UPPER(status)='FAIL' THEN 1 ELSE 0 END) as fail_c,
+            AVG(CASE WHEN duration_seconds > 0 AND duration_seconds <= 1800 THEN duration_seconds ELSE NULL END) as avg_duration
+        FROM reports
+        {where_clause}
+        GROUP BY petugas
+        ORDER BY total DESC
+        LIMIT 10
+    """
+    rows = conn.execute(query, base_params).fetchall()
+    res = []
+    for r in rows:
+        tot = r["total"] or 0
+        p_c = r["pass_c"] or 0
+        rate = round((p_c / tot * 100), 1) if tot > 0 else 0.0
+        avg_dur_sec = r["avg_duration"] or 0
+        avg_dur_min = round(avg_dur_sec / 60, 1) if avg_dur_sec > 0 else 0.0
+
+        res.append({
+            "officer": r["petugas"],
+            "total": tot,
+            "pass": p_c,
+            "fail": r["fail_c"] or 0,
+            "pass_rate": rate,
+            "avg_duration_minutes": avg_dur_min
+        })
+    return res
+
+
+def get_daily_shift_progress(conn, target_quota: int = 30) -> dict:
+    """Hitung progress shift hari ini, kecepatan (unit/jam), dan split PASS/FAIL."""
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    query = """
+        SELECT 
+            COUNT(*) as today_total,
+            SUM(CASE WHEN UPPER(status)='PASS' THEN 1 ELSE 0 END) as today_pass,
+            SUM(CASE WHEN UPPER(status)='FAIL' THEN 1 ELSE 0 END) as today_fail
+        FROM reports
+        WHERE DATE(created_at) = DATE(?)
+    """
+    row = conn.execute(query, [today_str]).fetchone()
+    tot = row["today_total"] if row and row["today_total"] else 0
+    p_c = row["today_pass"] if row and row["today_pass"] else 0
+    f_c = row["today_fail"] if row and row["today_fail"] else 0
+
+    progress_pct = min(100.0, round((tot / target_quota * 100), 1)) if target_quota > 0 else 0.0
+    
+    # Calculate velocity based on current hour of day
+    current_hour = max(1, datetime.now().hour - 7) # assuming shift starts ~08:00 AM
+    velocity = round(tot / current_hour, 1)
+
+    return {
+        "today_total": tot,
+        "today_pass": p_c,
+        "today_fail": f_c,
+        "target_quota": target_quota,
+        "progress_percentage": progress_pct,
+        "units_per_hour": velocity,
+    }
+
+
+def get_device_health_history(serial_number: str) -> dict:
+    """Ambil seluruh riwayat pengujian untuk satu Serial Number (S/N). Sanitasi input S/N & urutkan dari yang terbaru."""
+    if not serial_number:
+        return {
+            "serial_number": "",
+            "total_attempts": 0,
+            "has_history": False,
+            "is_chronic_defect": False,
+            "pass_count": 0,
+            "fail_count": 0,
+            "latest_status": "",
+            "history": []
+        }
+
+    sn_clean = re.sub(r"[\r\n\t\s]", "", serial_number).upper()
+    conn = get_conn()
+    try:
+        query = """
+            SELECT * FROM reports 
+            WHERE REPLACE(REPLACE(REPLACE(REPLACE(UPPER(serial_number), CHAR(13), ''), CHAR(10), ''), CHAR(9), ''), ' ', '') = ?
+            ORDER BY version DESC, id DESC
+        """
+        rows = conn.execute(query, [sn_clean]).fetchall()
+        
+        if not rows:
+            return {
+                "serial_number": sn_clean,
+                "total_attempts": 0,
+                "has_history": False,
+                "is_chronic_defect": False,
+                "pass_count": 0,
+                "fail_count": 0,
+                "latest_status": "",
+                "history": []
+            }
+
+        total_attempts = len(rows)
+        pass_count = sum(1 for r in rows if (r["status"] or "").upper() == "PASS")
+        fail_count = sum(1 for r in rows if (r["status"] or "").upper() == "FAIL")
+        latest_status = (rows[0]["status"] or "").upper()
+        is_chronic = fail_count >= 2
+
+        history_records = []
+        for r in rows:
+            v_id = (r["vendor"] or "fortinet").lower()
+            v_spec = VENDOR_REGISTRY.get(v_id, VENDOR_REGISTRY["fortinet"])
+            items_spec = v_spec.get("items", [])
+
+            failed_items = []
+            for idx, item in enumerate(items_spec, start=1):
+                col_h = f"hasil{idx}"
+                col_k = f"ket{idx}"
+                if col_h in r.keys() and r[col_h] == "NOT OK":
+                    failed_items.append({
+                        "key": item["key"],
+                        "name": item["nama"],
+                        "category": item.get("category", "General"),
+                        "note": r[col_k] if col_k in r.keys() else ""
+                    })
+
+            history_records.append({
+                "id": r["id"],
+                "version": r["version"],
+                "status": (r["status"] or "").upper(),
+                "created_at": r["created_at"],
+                "vendor": v_id,
+                "vendor_name": v_spec.get("name", v_id),
+                "type_device": r["type_device"] or "",
+                "petugas": r["petugas"] or "",
+                "catatan": r["catatan"] or "",
+                "failed_items": failed_items,
+                "duration_seconds": r["duration_seconds"] if "duration_seconds" in r.keys() else 0
+            })
+
+        return {
+            "serial_number": sn_clean,
+            "total_attempts": total_attempts,
+            "has_history": True,
+            "is_chronic_defect": is_chronic,
+            "pass_count": pass_count,
+            "fail_count": fail_count,
+            "latest_status": latest_status,
+            "history": history_records
+        }
+    finally:
+        conn.close()
+
